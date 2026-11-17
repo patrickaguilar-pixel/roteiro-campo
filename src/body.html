@@ -1,0 +1,210 @@
+<body>
+<div class="app">
+  <aside id="painel">
+    <div class="alca-sheet" id="alcaSheet" role="button" tabindex="0" aria-label="Arraste ou toque para expandir ou recolher o painel"><span></span></div>
+    <header class="placa">
+      <div class="placa-borda">
+        <button type="button" class="proj-chip" id="bProj" aria-haspopup="dialog" title="Projetos: separar e alternar cronogramas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg><span id="projNome">Projeto</span><span class="seta" aria-hidden="true">▾</span></button>
+        <h1 id="tTitulo">Quadro geral</h1>
+        <p class="rota" id="tSub">Postos pluviométricos e fluviométricos</p>
+        <div class="numeros">
+          <div><b id="nKm">–</b><span>km no total</span></div>
+          <div><b id="nH">–</b><span>ao volante</span></div>
+          <div><b id="nDias">–</b><span>dias</span></div>
+          <div><b id="nPts">–</b><span id="nPtsL">pontos</span></div>
+        </div>
+      </div>
+      <nav class="abas" id="abas" role="tablist" aria-label="Etapas do roteiro"></nav>
+    </header>
+    <div class="status-linha"><div class="status" id="status" role="status"><i></i><span>Preparando o roteiro…</span></div><select id="vModo" class="vmodo" aria-label="Exibir os pontos" title="Como mostrar os pontos no mapa e nas listas"><option value="est">Por estação</option><option value="mun">Por município</option></select><button type="button" class="btn-excluir" id="bExcluirTopo" hidden title="Excluir esta etapa; os pontos são absorvidos pelas outras etapas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg><span>Excluir etapa</span></button></div>
+
+    <div class="acoes">
+      <button class="btn primario" id="bOtimizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Otimizar</span></button>
+      <button class="btn ico desf" id="bDesfazer" disabled title="Desfazer (Ctrl+Z)" aria-label="Desfazer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span>Desfazer</span></button>
+      <div class="split" id="splitSalvar"><button class="btn btn-salvar" id="bSalvar" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 3v5h7V3"/><path d="M8 21v-6h8v6"/></svg><span>Salvar</span></button><button class="btn btn-salvar seta-s" id="bSalvarMenu" type="button" aria-haspopup="true" aria-expanded="false" title="Salvar ou Salvar como" aria-label="Opções de salvar">▾</button><div class="menu-lista" id="menuSalvar" role="menu"><button data-salvar="salvar">Salvar<small>Grava as alterações no arquivo atual (Ctrl+S).</small></button><button data-salvar="como">Salvar como…<small>Grava em outro arquivo ou pasta (Ctrl+Shift+S). Os próximos "Salvar" vão para ele.</small></button></div></div>
+      <div class="menu" id="menu">
+        <button class="btn" id="bMenu" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg><span>Relatórios</span><span class="seta-m">▾</span></button>
+        <div class="menu-lista" role="menu">
+          <button data-acao="crono">Relatório completo<small>Resumo geral, cronograma dia a dia, paradas com observações e anotações, hospedagens e gastos. Imprime ou salva em PDF.</small></button>
+          <button data-acao="gastos">Relatório de gastos<small>Todos os gastos lançados, por data, tipo e etapa, com previsto x realizado.</small></button>
+          <button data-acao="tabela" id="mTabela">Tabela das estações<small>Todas as estações do projeto com etapa, dia, horário e acesso.</small></button>
+          <hr>
+          <button data-acao="csv">Baixar planilha do roteiro (CSV)</button>
+          <button data-acao="csvApoio">Baixar hospedagens, paradas e gastos (CSV)</button>
+          <button data-acao="kml">Baixar para Google My Maps / Earth (KML)<small>Pontos com o número da parada, separados por dia. Do quadro geral, leva todas as etapas.</small></button>
+          <button data-acao="fotos-zip">Baixar fotos (ZIP)<small>Fotos em JPG com GPS gravado (EXIF) e carimbo, planilha fotos.csv e fotos.kml para o Google Earth.</small></button>
+          <button data-acao="geojson">Baixar traçado e estações (GeoJSON)</button>
+          <hr>
+          <button data-acao="limpar" id="mLimpar">Desmarcar visitas desta etapa</button>
+          <button data-acao="inverter" id="mInverter">Inverter sentido desta etapa</button>
+          <button data-acao="json">Salvar roteiro (arquivo .json)</button>
+          <button data-acao="abrir">Trazer dados de outro arquivo…<small>Abre um roteiro .json ou um HTML salvo antes (etapas, visitas, anotações e hospedagens).</small></button>
+          <button data-acao="restaurar">Recomeçar a divisão das etapas</button>
+          <button data-acao="offline">Preparar para usar sem internet<small>Guarda neste aparelho as distâncias e os traçados de todas as etapas antes de ir a campo.</small></button>
+          <button data-acao="limpar-manual" class="perigo-m">Remover dados adicionados manualmente…<small>Escolha o que apagar: hospedagens, gastos, visitas, anotações, ajustes manuais.</small></button>
+        </div>
+      </div>
+      <input type="file" id="arquivo" accept=".json,.html,.htm,application/json,text/html" hidden>
+    </div>
+
+    <div class="busca-mapa" role="search">
+      <div class="bm-linha">
+        <svg class="bm-lupa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="bmQ" type="search" placeholder="Buscar cidade ou estação (nome, código, rio)" autocomplete="off" aria-label="Buscar cidade ou estação no mapa" aria-controls="bmRes">
+        <button type="button" class="bm-x" id="bmLimpar" aria-label="Limpar busca">×</button>
+      </div>
+      <div class="bm-tipos" id="bmTipos" role="group" aria-label="Tipo de estação">
+        <button type="button" data-bmt="todos" aria-pressed="true">Todas</button>
+        <button type="button" data-bmt="F" aria-pressed="false"><i class="F">F</i> Fluviométricas</button>
+        <button type="button" data-bmt="P" aria-pressed="false"><i class="P">P</i> Pluviométricas</button>
+      </div>
+      <div class="bm-res" id="bmRes" role="listbox" hidden></div>
+    </div>
+    <div class="barra-estrada" id="barraEstrada" role="group" aria-label="Tipo de estrada usado nas rotas">
+      <span class="be-rot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 10 4M20 20 14 4M12 6v2M12 11v2M12 16v2"/></svg>Rotas por</span>
+      <button type="button" data-estr="qualquer" aria-pressed="true" title="Caminho mais rápido, pode incluir estradas de terra">Qualquer estrada</button>
+      <button type="button" data-estr="pav" aria-pressed="false" title="Evita estradas de terra; a terra só entra no acesso final à estação ou onde não houver alternativa">Só pavimentadas</button>
+    </div>
+    <details class="caixa" id="ajustes">
+      <summary>Premissas do cálculo <small id="ajResumo"></small></summary>
+      <div class="caixa-corpo">
+        <div class="campos">
+          <label class="f">Início da jornada<input type="time" id="cIni" step="900"></label>
+          <label class="f">Fim da jornada<input type="time" id="cFim" step="900"></label>
+          <label class="f">Tempo por ponto (h)<input type="number" id="cVisita" min="0" max="8" step="0.25"></label>
+          <label class="f c2">Tempo de deslocamento
+            <select id="cBase">
+              <option value="vel">Distância pelas estradas ÷ velocidade média</option>
+              <option value="osrm">Tempo do roteador (OSRM) + acréscimo</option>
+            </select></label>
+          <label class="f" id="lVel">Velocidade média (km/h)<input type="number" id="cVel" min="20" max="110" step="5"></label>
+          <label class="f" id="lFolga" hidden>Acréscimo (%)<input type="number" id="cFolga" min="0" max="150" step="5"></label>
+          <label class="f">Almoço (min)<input type="number" id="cAlm" min="0" max="180" step="5" title="Tempo à mesa. Use 0 para não reservar almoço."></label>
+          <label class="f">Ir e voltar do almoço (min)<input type="number" id="cAlmDesl" min="0" max="120" step="5" title="Deslocamento até o restaurante e de volta à rota"></label>
+          <label class="f">Almoço a partir de<input type="time" id="cAlmIni" step="900"></label>
+          <label class="f">Lanche (min)<input type="number" id="cLan" min="0" max="90" step="5" title="Use 0 para não reservar lanche"></label>
+          <label class="f">Lanche a partir de<input type="time" id="cLanIni" step="900"></label>
+          <label class="chk-juntar c3"><input type="checkbox" id="cJuntar"><span><b>Fluviométrica + pluviométrica do mesmo local = 1 visita.</b> Quando as duas estações de uma mesma localidade ficam a até 1 km uma da outra (ou foram agrupadas pelo IGAM) e são visitadas em sequência, o tempo no ponto é contado uma vez só (o maior dos dois). Cada estação continua com as suas observações, visita marcada e fotos.</span></label>
+        </div>
+        <p class="dica">"Ao volante" conta só o deslocamento. O tempo em cada estação, o almoço (com o deslocamento até o restaurante) e o lanche são hora parada: não entram no "ao volante", mas ocupam o dia de trabalho e definem até onde cada dia chega. O dia termina na cidade de pernoite: uma parada só entra no dia se ainda der tempo de chegar à cidade até o fim da jornada.</p>
+      </div>
+    </details>
+
+    <div id="rolagem">
+      <!-- QUADRO GERAL -->
+      <section id="vGeral" hidden>
+        <div id="cards"></div>
+        <div id="poolBox"></div>
+        <details class="caixa" id="distrib">
+          <summary>Planejar pontos <small>selecionar e distribuir entre as etapas</small></summary>
+          <div class="caixa-corpo">
+            <div class="pl-barra">
+              <input type="search" id="plBusca" placeholder="Filtrar: nome, código, município, rio" aria-label="Filtrar pontos">
+              <select id="plFiltro" aria-label="Mostrar pontos de"></select>
+            </div>
+            <div class="pl-barra">
+              <label class="pl-todos"><input type="checkbox" id="plTodos"><span id="plN">Selecionar visíveis</span></label>
+              <button type="button" class="btn peq" id="plMapa" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l7 17 2.5-7.5L20 10z"/></svg><span>Selecionar no mapa</span></button>
+              <button type="button" class="btn peq" id="plLimpar">Limpar</button>
+            </div>
+            <div class="pl-aplicar">
+              <div class="pl-grupo"><select id="plDest" aria-label="Destino dos selecionados"></select><button type="button" class="btn primario peq" id="plMover">Mover</button></div>
+              <div class="pl-grupo"><input type="text" inputmode="decimal" id="plTempo" placeholder="h" aria-label="Tempo no ponto, em horas"><button type="button" class="btn peq" id="plTempoBt" title="Aplica este tempo aos selecionados. Vazio = volta ao padrão">Definir tempo</button></div>
+            </div>
+            <div id="distribLista"></div>
+          </div>
+        </details>
+        <details class="caixa" id="apoiosGeralBox">
+          <summary>Hospedagens e paradas <small id="apoiosGeralN"></small></summary>
+          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone, gasto…" aria-label="Buscar nas hospedagens e paradas"><div id="apoiosGeral"></div></div>
+        </details>
+      </section>
+
+      <!-- ETAPA -->
+      <section id="vEtapa" hidden>
+        <div class="etapa-cfg">
+          <label class="f">Nome<input id="eNome" maxlength="40"></label>
+          <label class="f">Início<input type="date" id="eInicio"></label>
+          <label class="f">Dias<input type="number" id="eDias" min="1" max="40" placeholder="auto"></label>
+        </div>
+        <div id="eAviso"></div>
+        <div id="lista" aria-label="Pontos em ordem de visita"></div>
+        <details class="caixa" id="apoiosEtapaBox">
+          <summary>Hospedagens e paradas da etapa <small id="apoiosEtapaN"></small></summary>
+          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone, gasto…" aria-label="Buscar nas hospedagens e paradas da etapa"><div id="apoiosEtapa"></div></div>
+        </details>
+        <div style="margin:12px 14px 0"><button class="btn perigo peq" id="bExcluirEtapa">Excluir esta etapa</button> <span class="dica">Os pontos são redistribuídos entre as outras etapas, cada um na etapa onde gera menos desvio.</span></div>
+      </section>
+    </div>
+    <datalist id="listaEst"></datalist>
+    <datalist id="todos"></datalist>
+    <div class="creditos"><b class="versao" id="versao">Versão 29 · 09/10/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas neste navegador. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
+  </aside>
+  <main id="mapa" aria-label="Mapa da rota"></main>
+</div>
+
+<dialog id="dApoio">
+  <form method="dialog" id="fApoio">
+    <div class="dlg-top"><h2 id="dApoioTit">Registrar hospedagem ou parada</h2><button type="button" class="btn" data-fechar>Fechar</button></div>
+    <div class="dlg-corpo">
+      <div class="tipos" id="aTipos" role="radiogroup" aria-label="Tipo"></div>
+      <label class="f">Nome<input id="aNome" required maxlength="80" placeholder="Ex.: Hotel Serra Verde, Posto Graal km 230"></label>
+      <div class="grid2">
+        <label class="f">Município<input id="aMun" list="todos" autocomplete="off"></label>
+        <label class="f">Etapa<select id="aEtapa"></select></label>
+      </div>
+      <div class="grid2">
+        <label class="f">Endereço / telefone<input id="aContato" maxlength="120"></label>
+        <label class="f" id="aValorLbl">Valor (R$)<input id="aValor" type="number" min="0" step="0.01" placeholder="0,00"></label>
+      </div>
+      <label class="f">Observações<textarea id="aNota" rows="2" placeholder="Reserva, horário, café incluso, estacionamento…"></textarea></label>
+      <div class="gastos-box"><div class="gastos-top"><b>Gastos realizados</b><span id="aGastosTot" class="dica" style="margin:0"></span><button type="button" class="btn peq" id="aAddGasto">+ Adicionar gasto</button></div><div id="aGastos"></div></div>
+      <p class="dica" id="aPos"></p>
+    </div>
+    <div class="dlg-pe">
+      <button type="button" class="btn perigo esq" id="aExcluir">Excluir</button>
+      <button type="button" class="btn" data-fechar>Cancelar</button>
+      <button type="submit" class="btn primario">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dLimpar">
+  <div class="dlg-top"><h2>Remover dados adicionados manualmente</h2><button type="button" class="btn" data-fechar>Fechar</button></div>
+  <div class="dlg-corpo"><p class="dica" style="margin:0">Marque o que deseja apagar. As estações do projeto, as etapas e as premissas continuam. Dá para desfazer logo em seguida.</p><div id="limparLista" class="lim-lista"></div></div>
+  <div class="dlg-pe"><button type="button" class="btn" data-fechar>Cancelar</button><button type="button" class="btn primario perigo-b" id="bLimparOk">Remover selecionados</button></div>
+</dialog>
+<input type="file" id="fotoCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="fotoGal" accept="image/*" multiple hidden>
+<dialog id="dFoto" class="foto-dlg">
+  <div class="dlg-top"><h2 id="dFotoTit">Foto</h2><button type="button" class="btn" data-fechar>Fechar</button></div>
+  <div class="dlg-corpo">
+    <img id="dFotoImg" alt="Foto da estação">
+    <table class="foto-meta" id="dFotoMeta"></table>
+    <label class="f">Legenda<input id="dFotoLeg" maxlength="160" placeholder="Ex.: régua linimétrica, pluviômetro, acesso pela porteira…"></label>
+  </div>
+  <div class="dlg-pe"><button type="button" class="btn perigo esq" id="dFotoExcluir">Excluir</button><a class="btn" id="dFotoMapa" target="_blank" rel="noopener">Google Maps</a><button type="button" class="btn" id="dFotoNoMapa">Ver no mapa</button><button type="button" class="btn primario" id="dFotoBaixar">Baixar foto</button></div>
+</dialog>
+<dialog id="dProj" class="dlg-proj" aria-labelledby="dProjTit">
+  <div class="dlg-top"><h2 id="dProjTit">Projetos</h2><button type="button" class="btn" data-fechar>Fechar</button></div>
+  <div class="dlg-corpo" id="dProjCorpo"></div>
+</dialog>
+<dialog id="dOrigem">
+  <div class="dlg-top"><h2>Dois roteiros diferentes</h2></div>
+  <div class="dlg-corpo">
+    <p class="dica" style="margin:0">Este arquivo tem um roteiro gravado que é diferente do roteiro guardado neste navegador (por exemplo, um foi editado no celular e o outro no computador). Escolha qual usar. O outro continua disponível no botão Desfazer.</p>
+    <div class="orig-op" id="oArq"></div><button type="button" class="btn primario" id="oUsarArq">Usar o roteiro do arquivo</button>
+    <div class="orig-op" id="oNav"></div><button type="button" class="btn" id="oUsarNav">Usar o roteiro deste navegador</button>
+  </div>
+</dialog>
+<dialog id="dMenuMob" class="menu-mob">
+  <div class="dlg-top"><h2 id="dMenuMobTit">Relatórios e arquivo</h2><button type="button" class="btn" data-fechar>Fechar</button></div>
+  <div class="menu-mob-corpo" id="dMenuMobCorpo"></div>
+</dialog>
+<dialog id="dRel" class="largo">
+  <div class="dlg-top"><h2 id="dRelTit">Relatório</h2><div style="display:flex;gap:6px"><button class="btn" id="bImprimir">Imprimir / PDF</button><button class="btn" data-fechar>Fechar</button></div></div>
+  <div class="rel-corpo" id="relCorpo"></div>
+</dialog>
+
+<div class="toast" id="toast" role="status"><span></span></div>
+
