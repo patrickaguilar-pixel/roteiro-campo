@@ -1243,8 +1243,10 @@ function render(){
   document.getElementById('bOtimizar').title = e ? 'Reordena os pontos desta etapa para o menor tempo de estrada' : 'Reordena os pontos de cada etapa, sem trocar pontos de etapa';
   document.getElementById('bDesfazer').disabled = !undoStack.length;
   document.getElementById('vModo').value = state.vista || 'est';
-  renderAbas(); renderTopo(); setStatus();
-  if (e) renderEtapa(); else renderGeral();
+  /* no celular, o painel detalhado só é montado quando está aberto (Planejamento completo): o app fica leve */
+  const cl = document.documentElement.classList, painelVisivel = !cl.contains('celular') || cl.contains('plan-aberto');
+  setStatus();
+  if (painelVisivel){ renderAbas(); renderTopo(); if (e) renderEtapa(); else renderGeral(); }
   renderMapa();
 }
 
@@ -1261,7 +1263,7 @@ const painelEl = document.getElementById('painel'), alcaEl = document.getElement
 let sheetEst = 'meio';
 function alturaSheet(est){ const H = window.innerHeight, mini = alcaEl.offsetHeight + document.querySelector('.placa').offsetHeight + 4;
   return est === 'mini' ? mini : est === 'cheio' ? H - 48 : Math.max(mini + 160, Math.round(H * .5)); }
-const alturaAtual = () => mobile() ? painelEl.getBoundingClientRect().height : 0;
+const alturaAtual = () => window.__alturaFolha ? window.__alturaFolha() : mobile() ? painelEl.getBoundingClientRect().height : 0;
 function setSheet(est){
   if (!mobile()){ document.documentElement.style.removeProperty('--sheet'); return; }
   sheetEst = est; painelEl.dataset.sheet = est;

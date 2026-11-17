@@ -5,6 +5,9 @@
    ===================================================================================================== */
 const NUV = window.RC || {ativo:false, on(){ return () => {}; }, status(){ return {}; }, sujo(){}};
 const EM_NUVEM = !!NUV.ativo;
+const CELULAR = matchMedia('(max-width:760px)').matches;
+/* passar de celular para tela grande (ou o contrário) troca a interface inteira */
+matchMedia('(max-width:760px)').addEventListener('change', ev => { if (ev.matches !== CELULAR && !GRV.t) location.reload(); });
 document.documentElement.classList.add('pwa');
 const ICO = {
   mapa:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
@@ -464,13 +467,11 @@ setInterval(() => { if (!telaEl.hidden && abaApp === 'campo' && GPS.on && !(docu
   document.getElementById('dMenuMobCorpo').addEventListener('click', ev => { const b = ev.target.closest('[data-mn2]'); if (b) baixarTrajetos(b.dataset.mn2); });
 })();
 
-irAba(mobile() ? 'mapa' : 'roteiro');
-if (mobile()) setSheet('meio');
+if (!CELULAR){ irAba('roteiro'); }
 window.addEventListener('resize', () => { if (!mobile() && abaApp === 'mapa') irAba('roteiro'); });
 /* voltar do Android: fecha a tela aberta antes de sair do app */
-history.replaceState({rc:'base'}, '');
-history.pushState({rc:'app'}, '');
-window.addEventListener('popstate', () => {
+if (!CELULAR){ history.replaceState({rc:'base'}, ''); history.pushState({rc:'app'}, ''); }
+if (!CELULAR) window.addEventListener('popstate', () => {
   if (document.querySelector('dialog[open]')){ document.querySelectorAll('dialog[open]').forEach(d => d.close()); history.pushState({rc:'app'}, ''); return; }
   if (mobile() && abaApp !== 'mapa'){ irAba('mapa'); history.pushState({rc:'app'}, ''); return; }
 });

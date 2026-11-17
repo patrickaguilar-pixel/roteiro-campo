@@ -27,10 +27,10 @@ head = rep(head, '<title>Roteiro das estações pluviométricas e fluviométrica
 import re as _re
 head = _re.sub(r'<link rel="icon" href="data:image/svg\+xml,[^"]*">', '<link rel="icon" type="image/png" sizes="64x64" href="favicon.png"><link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">', head, count=1)
 assert 'href="favicon.png"' in head
-i = head.rfind('</style>'); head = head[:i] + ler('pwa.css') + head[i:]
+i = head.rfind('</style>'); head = head[:i] + ler('pwa.css') + ler('celular.css') + head[i:]
 body = rep(body, 'Versão 29 · 09/10/2026', f'Versão {VERSAO} · app · {DATA}')
 body = rep(body, 'Alterações ficam salvas neste navegador.', 'Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem.')
-app = ler('app.js') + ler('campo.js')
+app = ler('app.js') + ler('campo.js') + ler('celular.js')
 assert '</script' not in app.lower().replace('<\\/script', ''), 'o código do app não pode conter </script>'
 html = (head + body + ler('dados.html') + ler('libs.html') +
         f'<script>window.RC_FIREBASE={json.dumps(cfg)};</script>\n' +
