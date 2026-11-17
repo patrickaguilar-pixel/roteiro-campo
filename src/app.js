@@ -476,7 +476,7 @@ const map = L.map('mapa', {zoomControl:true, preferCanvas:true, tapTolerance:18,
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 /* Fundos do mapa: todos gratuitos e sem chave. Cada um tem um provedor reserva caso o principal não carregue na rede. */
 const EREF = ESRI + 'Reference/';
-const tl = (url, o = {}) => L.tileLayer(url, {maxZoom:19, ...o});
+const tl = (url, o = {}) => L.tileLayer(url, {maxZoom:19, crossOrigin:'anonymous', ...o});   // CORS: deixa o app guardar os pedaços do mapa para usar sem internet
 const FUNDOS = {
   ruas: {nome:'Estradas', dica:'Mapa rodoviário (Esri)', camadas:() => [tl(ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}', {attribution:'Mapa © Esri, HERE, Garmin, OpenStreetMap'})],
          reserva:() => [tl('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'})]},

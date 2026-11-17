@@ -13,11 +13,19 @@ if (CELULAR){
   canvas.options.padding = .1;
   limites.eachLayer(l => { l.options.smoothFactor = 3; l.setStyle(estiloMun(l.feature.properties.id)); });
   L.TileLayer.mergeOptions({updateWhenZooming:false, updateWhenIdle:true, keepBuffer:1});
+  const todosMun = limites.getLayers();
+  function ajustaLimites(){
+    const leve = (state.fundo || 'ruas') !== 'nenhum', com = new Set([BH]);
+    if (leve) state.etapas.forEach(e => e.stops.forEach(x => [...EST[x.id].muns, ...EST[x.id].munPt].forEach(m => com.add(m))));
+    todosMun.forEach(l => { const quer = !leve || com.has(l.feature.properties.id), tem = limites.hasLayer(l); if (quer && !tem) limites.addLayer(l); else if (!quer && tem) limites.removeLayer(l); });
+  }
+  const _usarFundo = usarFundo;
+  usarFundo = (...a) => { const r = _usarFundo(...a); try { ajustaLimites(); } catch(e){} return r; };
   try { usarFundo(['ruas', 'ter', 'nenhum'].includes(state.fundo) ? state.fundo : 'ruas'); } catch(e){}
   /* ---------- estrutura ---------- */
   const raiz = document.createElement('div'); raiz.id = 'cel';
   raiz.innerHTML = `
-    <header id="cTopo"><button type="button" id="cProj" aria-label="Trocar de projeto">${svgI('pasta')}<span></span>${'<svg class="ic-ui seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'}</button>
+    <header id="cTopo"><button type="button" id="cProj" aria-label="Trocar de projeto"><svg class="c-logo" viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#0B6B45"/><path d="M10 38.5h28" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.5 5.3"/><path d="M24 8c-5.5 0-9.6 4.1-9.6 9.4 0 6.9 9.6 15.1 9.6 15.1s9.6-8.2 9.6-15.1C33.6 12.1 29.5 8 24 8z" fill="#E0A100"/><circle cx="24" cy="17.4" r="3.6" fill="#0B6B45"/></svg><span></span>${'<svg class="ic-ui seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'}</button>
       <button type="button" id="cSync" aria-label="Situação da nuvem"><i></i></button></header>
     <div id="cRec" hidden></div>
     <div id="cFlut"><button type="button" data-c="gps" aria-label="Minha localização">${svgI('gps')}</button><button type="button" data-c="camadas" aria-label="Fundo do mapa">${'<svg class="ic-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>'}</button><button type="button" data-c="tudo" aria-label="Ver o roteiro inteiro">${'<svg class="ic-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>'}</button></div>
@@ -88,6 +96,18 @@ if (CELULAR){
   const linkNav = id => `https://www.google.com/maps/dir/?api=1&destination=${ll(id)[0]},${ll(id)[1]}&travelmode=driving`;
   const cab = (titulo, sub, voltarBt = pilha.length > 0) => `<div class="cf-cab">${voltarBt ? `<button type="button" class="cf-volta" data-c="voltar" aria-label="Voltar"><svg class="ic-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>` : ''}<div><h2>${titulo}</h2>${sub ? `<p>${sub}</p>` : ''}</div></div>`;
   const vazio = t => `<p class="c-vazio">${t}</p>`;
+  const icGM = '<svg class="ic-gm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z" fill="#EA4335"/><path d="M12 2c-2.2 0-4.1 1-5.4 2.6L12 9l5.4-4.4C16.1 3 14.2 2 12 2z" fill="#4285F4" opacity=".9"/><path d="M5 9c0 1.3.4 2.7 1 4L12 9 6.6 4.6C5.6 5.8 5 7.3 5 9z" fill="#FBBC04"/><circle cx="12" cy="9" r="2.6" fill="#fff"/></svg>';
+  const nomeNo = (e, x) => x.rot || (x.k !== undefined ? EST[e.stops[x.k].id].nome : '');
+  /* rota do dia no Google Maps, com a legenda das letras que o Google Maps usa (A, B, C...) */
+  function blocoGM(e, D, titulo = 'Rota do dia no Google Maps'){
+    const g = gmPlano(e, D), n = g.partes.length;
+    const sub = g.continuar ? `Da sua posição pelas ${g.faltam} ${g.faltam === 1 ? 'estação que falta' : 'estações que faltam'}` : `${D.j - D.i} estações, na ordem do roteiro`;
+    return `<section class="c-gm"><div class="c-gm-t">${icGM}<div><b>${titulo}</b><small>${sub}</small></div></div>
+      <div class="c-gm-bt">${g.partes.map((p, i) => `<a class="c-bt gm" href="${p.url}" target="_blank" rel="noopener">Abrir${n > 1 ? ` parte ${i + 1} de ${n}` : ' no Google Maps'}</a>`).join('')}</div>
+      <details class="c-gm-leg"><summary>Como ler a rota</summary>
+        ${g.partes.map((p, i) => `${n > 1 ? `<p class="c-gm-p">Parte ${i + 1}</p>` : ''}<ol>${p.legenda.map(x => `<li><i>${x.l}</i>${esc(nomeNo(e, x.x))}</li>`).join('')}</ol>`).join('')}
+        <p>No Google Maps cada parada aparece com uma letra. Toque em <b>Iniciar</b> para navegar. Ao chegar em cada estação, volte ao Roteiro e toque em <b>Cheguei</b>: o próximo link já sai da sua posição só com as estações que faltam.${n > 1 ? ' O Google Maps aceita até 10 pontos por rota, por isso o dia foi dividido em partes.' : ''}</p></details></section>`;
+  }
 
   /* ---------- telas ---------- */
   function telaMapa(){
@@ -95,20 +115,22 @@ if (CELULAR){
     const chips = `<div class="c-chips" role="group" aria-label="Mostrar no mapa"><button type="button" data-c="etapa" data-id="geral" aria-pressed="${!e}">Todas</button>${state.etapas.map(x => `<button type="button" data-c="etapa" data-id="${x.id}" aria-pressed="${e && e.id === x.id}" style="--c:${x.cor}"><i></i>${esc(x.nome)}</button>`).join('')}</div>`;
     const resumo = e && p ? `${e.stops.length} estações · ${p.days.length} dias · ${fmtKm(p.tot.km)} km${periodo(p) ? ' · ' + periodo(p) : ''}`
       : `${state.etapas.reduce((a, x) => a + x.stops.length, 0)} estações · ${state.etapas.length} etapas${T ? ` · ${fmtKm(T.km)} km` : ''}`;
-    return `<div class="cf-cab"><div><h2>${e ? esc(e.nome) : 'Roteiro completo'}</h2><p>${resumo}</p></div></div>${chips}`;
+    const dias = e && p && p.days.length ? `<p class="c-rot">Abrir um dia no Google Maps</p><div class="c-chips gm">${p.days.map((D, d) => { const g = gmPlano(e, D); return `<a href="${g.partes[0].url}" target="_blank" rel="noopener">${icGM}Dia ${d + 1}${g.partes.length > 1 ? ' (1ª parte)' : ''}</a>`; }).join('')}</div>` : '';
+    return `<div class="cf-cab"><div><h2>${e ? esc(e.nome) : 'Roteiro completo'}</h2><p>${resumo}</p></div></div>${chips}${dias}`;
   }
   function cartaoEstacao(id, opt = {}){
     const est = EST[id], o = onde(id), s = o.s || {}, q = posGPS(), dist = q ? havLL(q, ll(id)) : null;
     const info = [estMun(est), est.cod.join(' / ')];
     if (o.e) info.push(`${o.e.nome}${o.inf ? `, dia ${o.inf.d + 1} às ${fmtHora(o.inf.cheg)}` : ''}`); else info.push('Fora das etapas');
     return `<article class="c-est${s.feito ? ' feito' : ''}">
-      <div class="c-est-t">${o.e ? `<span class="c-n" style="--c:${o.e.cor}">${o.k + 1}</span>` : ''}<div><h3>${esc(est.nome)} ${tipoBadge(est)}</h3><p>${info.map(esc).join(' · ')}${dist !== null ? ` · <b>${fmtDist(dist)}</b>` : ''}</p></div></div>
+      <div class="c-est-t" style="--c:${o.e ? o.e.cor : '#5E6B66'}">${o.e ? `<span class="c-n" style="--c:${o.e.cor}">${o.k + 1}</span>` : ''}<div><h3>${esc(est.nome)} ${tipoBadge(est)}</h3><p>${info.map(esc).join(' · ')}${dist !== null ? ` · <b>${fmtDist(dist)}</b>` : ''}</p></div></div>
       ${s.feito ? `<p class="c-ok">${svgI('ok')} Visitada ${esc(s.feito)}</p>` : ''}
       <div class="c-acoes">
-        <a class="c-bt pri" href="${linkNav(id)}" target="_blank" rel="noopener">${svgI('nav')}<span>Navegar</span></a>
+        <a class="c-bt pri" href="${linkNav(id)}" target="_blank" rel="noopener">${svgI('nav')}<span>Ir até lá</span></a>
         ${o.e ? `<button type="button" class="c-bt ${s.feito ? '' : 'verde'}" data-c="visita" data-id="${id}">${svgI('ok')}<span>${s.feito ? 'Desmarcar' : 'Cheguei'}</span></button>` : ''}
         ${o.e ? `<button type="button" class="c-bt" data-c="foto" data-id="${id}">${svgI('foto')}<span>Foto${(s.fotos || []).length ? ` · ${s.fotos.length}` : ''}</span></button>` : ''}
       </div>
+      <p class="c-gm-dica">${icGM}"Ir até lá" abre o Google Maps já com a rota até a estação.</p>
       ${o.e ? `<div class="c-acoes2"><button type="button" data-c="nota" data-id="${id}">${svgI('nota')}${s.relato ? 'Editar anotação' : 'Anotar'}</button>${opt.noMapa !== false ? `<button type="button" data-c="ver" data-id="${id}">${svgI('alvo')}Ver no mapa</button>` : ''}</div>` : ''}
       ${notaAberta === id ? `<div class="c-nota"><textarea id="cNota" rows="4" placeholder="Estado da estação e do acesso, leituras, manutenção, observador…">${esc(s.relato || '')}</textarea><div><button type="button" class="c-bt pri" data-c="nota-ok" data-id="${id}">Salvar</button><button type="button" class="c-bt" data-c="nota-x">Cancelar</button></div></div>`
         : s.relato ? `<p class="c-relato">${esc(s.relato)}</p>` : ''}
@@ -132,15 +154,17 @@ if (CELULAR){
     const pend = ks.filter(k => !e.stops[k].feito), feitos = ks.length - pend.length;
     h += `<div class="c-dia"><button type="button" class="c-red" data-c="dia" data-d="${d - 1}" ${d ? '' : 'disabled'} aria-label="Dia anterior">‹</button>
       <div><b>Dia ${d + 1} de ${p.days.length}${D.data ? ` · ${esc(fmtDS(D.data))}` : ''}</b><small>${feitos}/${ks.length} visitadas · ${fmtKm(D.km)} km${D.to && D.to !== BH ? ` · dorme em ${esc(MUN[D.to].n)}` : ' · volta a BH'}</small></div>
-      <button type="button" class="c-red" data-c="dia" data-d="${d + 1}" ${d < p.days.length - 1 ? '' : 'disabled'} aria-label="Próximo dia">›</button></div>`;
+      <button type="button" class="c-red" data-c="dia" data-d="${d + 1}" ${d < p.days.length - 1 ? '' : 'disabled'} aria-label="Próximo dia">›</button></div><i class="c-barra dia" style="--c:${e.cor}"><i style="width:${ks.length ? Math.round(feitos / ks.length * 100) : 0}%"></i></i>`;
     const foco = focoHoje && ks.some(k => e.stops[k].id === focoHoje) ? focoHoje : null;
     const alvo = foco || (pend.length ? e.stops[pend[0]].id : null);
     if (alvo){ const proxK = pend.find(k => e.stops[k].id !== alvo);
       h += `<p class="c-rot">${foco && onde(foco).s.feito ? 'Estação visitada' : 'Próxima estação'}</p>` + cartaoEstacao(alvo)
         + (foco && onde(foco).s.feito && proxK !== undefined ? `<button type="button" class="c-bt largo pri" data-c="proxima">Próxima: ${esc(EST[e.stops[proxK].id].nome)} ›</button>` : ''); }
     else h += `<p class="c-tudo">${svgI('ok')} Todas as estações deste dia foram visitadas.</p>`;
+    const gl = gmPlano(e, D).letra;
+    h += blocoGM(e, D);
     h += `<p class="c-rot">Estações do dia</p><ol class="c-lista">${ks.map(k => { const s = e.stops[k], est = EST[s.id], inf = p.info[k] || {};
-      return `<li class="${s.feito ? 'feito' : ''}"><button type="button" class="c-chk" data-c="visita" data-id="${s.id}" aria-pressed="${!!s.feito}" aria-label="${s.feito ? 'Desmarcar' : 'Marcar visitada'}">${svgI('ok')}</button>
+      return `<li class="${s.feito ? 'feito' : ''}">${gl[k] ? `<i class="c-letra" title="Letra no Google Maps">${gl[k].l}</i>` : '<i class="c-letra vazia"></i>'}<button type="button" class="c-chk" data-c="visita" data-id="${s.id}" aria-pressed="${!!s.feito}" aria-label="${s.feito ? 'Desmarcar' : 'Marcar visitada'}">${svgI('ok')}</button>
         <button type="button" class="c-it" data-c="estacao" data-id="${s.id}"><b>${esc(est.nome)}</b><small>${inf.cheg != null ? fmtHora(inf.cheg) + ' · ' : ''}${esc(estMun(est))}</small></button></li>`; }).join('')}</ol>`;
     h += `<button type="button" class="c-bt largo" data-c="gasto">${svgI('moeda')}<span>Registrar gasto ou abastecimento</span></button>`;
     return h;
@@ -167,7 +191,7 @@ if (CELULAR){
       return `<details class="c-dd"${d === diaCampo(e, p) ? ' open' : ''}><summary><b>Dia ${d + 1}</b><span>${D.data ? esc(fmtDS(D.data)) + ' · ' : ''}${ks.length} estações · ${fmtKm(D.km)} km · ${fmtHora(D.saida)}–${fmtHora(D.chegada)}</span></summary>
         <ol class="c-lista">${ks.map(k => { const s = e.stops[k], est = EST[s.id], inf = p.info[k] || {};
           return `<li class="${s.feito ? 'feito' : ''}"><button type="button" class="c-chk" data-c="visita" data-id="${s.id}" aria-pressed="${!!s.feito}" aria-label="Visitada">${svgI('ok')}</button><button type="button" class="c-it" data-c="estacao" data-id="${s.id}"><b>${k + 1}. ${esc(est.nome)}</b><small>${inf.cheg != null ? fmtHora(inf.cheg) + ' · ' : ''}${esc(estMun(est))}</small></button></li>`; }).join('')}</ol>
-        <p class="c-pern">${D.to && D.to !== BH ? `Pernoite em ${esc(munNome(D.to))}` : 'Retorno a Belo Horizonte'}</p></details>`; }).join('');
+        <p class="c-pern">${D.to && D.to !== BH ? `Pernoite em ${esc(munNome(D.to))}` : 'Retorno a Belo Horizonte'}</p><div class="c-dd-gm">${blocoGM(e, D, `Dia ${d + 1} no Google Maps`)}</div></details>`; }).join('');
     return h;
   }
   function telaMais(){
@@ -210,7 +234,7 @@ if (CELULAR){
     const T = totaisGerais(), lst = [...state.apoios].sort((a, b) => (b._t || 0) - (a._t || 0));
     return cab('Gastos e hospedagens', `Realizado ${fmtR(T.gasto)} · previsto ${fmtR(T.prev)}`) +
       `<button type="button" class="c-bt largo pri" data-c="gasto">${svgI('moeda')}<span>Registrar gasto ou abastecimento</span></button>` +
-      (lst.length ? `<ul class="c-trj">${lst.map(a => `<li><button type="button" class="c-it" data-c="apoio" data-id="${a.uid}"><b>${esc(a.nome)}</b><small>${TIPOS[a.tipo].nome}${a.mun ? ` · ${esc(MUN[a.mun].n)}` : ''}${gastoTotal(a) ? ` · gasto ${fmtR(gastoTotal(a))}` : a.valor ? ` · previsto ${fmtR(previsto(a))}` : ''}</small></button></li>`).join('')}</ul>` : vazio('Nada registrado ainda.')) +
+      (lst.length ? `<ul class="c-trj">${lst.map(a => `<li><button type="button" class="c-it" data-c="apoio" data-id="${a.uid}"><b>${esc(a.nome)}</b><small>${TIPOS[a.tipo].nome}${a.mun ? ` · ${esc(MUN[a.mun].n)}` : ''}${gastoTotal(a) ? ` · gasto ${fmtR(gastoTotal(a))}` : a.valor ? ` · previsto ${fmtR(previsto(a))}` : ''}</small></button><a class="c-red" href="${gmIr([a.lat, a.lon])}" target="_blank" rel="noopener" aria-label="Ir com o Google Maps">${icGM}</a></li>`).join('')}</ul>` : vazio('Nada registrado ainda.')) +
       `<button type="button" class="c-bt largo" data-c="rel-gastos">${svgI('rel')}<span>Relatório de gastos</span></button>`;
   }
   function telaRelatorios(){
@@ -322,7 +346,7 @@ if (CELULAR){
   }
   NUV.on(() => { topo(); if (atual().v === 'mais' && !digitando()) desenhar(); });
   const _render2 = render;
-  render = function(){ _render2(); topo(); if (!digitando()) desenhar(); };
+  render = function(){ _render2(); try { ajustaLimites(); } catch(e){} topo(); if (!digitando()) desenhar(); };
   const _atuG = atualizarGravacaoUI;
   atualizarGravacaoUI = function(so){ _atuG(so); topo(); if (!so && !digitando() && (atual().v === 'hoje')) desenhar(); };
   const _gL = gpsLigar, _gD = gpsDesligar;

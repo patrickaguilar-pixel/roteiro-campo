@@ -1,6 +1,6 @@
 /* Roteiro de Campo: rede primeiro para o app (sempre a versão mais nova); cópia guardada para abrir sem internet.
    Mapas de fundo: cada pedaço visto com internet fica guardado no aparelho (até ~MAX pedaços, 60 dias). */
-const V = '30-1794940001';
+const V = '30-1794940458';
 const APP = 'rc-app-' + V, LIB = 'rc-lib-v1', MAPAS = 'rc-mapas-v1';
 const MAX = 40000, VALIDADE = 60 * 864e5;
 const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
@@ -36,18 +36,11 @@ async function tile(req){
     if (Date.now() - t < VALIDADE || !navigator.onLine) return m;
   }
   try {
-    const r = await fetch(req.url, {mode:'cors', credentials:'omit'});
-    if (r.ok){
-      const b = await r.blob(), h = new Headers(r.headers); h.set('x-rc-t', String(Date.now()));
-      const guardar = new Response(b, {status:200, headers:h});
-      c.put(req.url, guardar.clone()).then(aparar).catch(() => {});
-      return guardar;
-    }
-    return m || r;
-  } catch(e){
-    if (m) return m;
-    try { return await fetch(req); } catch(e2){ return new Response('', {status:504}); }
-  }
+    const r = await fetch(req);
+    if (r.ok && r.type !== 'opaque'){ const h = new Headers({'content-type': r.headers.get('content-type') || 'image/png', 'x-rc-t': String(Date.now())});
+      c.put(req.url, new Response(r.clone().body, {status:200, headers:h})).then(aparar).catch(() => {}); }
+    return r;
+  } catch(e){ if (m) return m; throw e; }
 }
 self.addEventListener('fetch', e => {
   const r = e.request; if (r.method !== 'GET') return;
