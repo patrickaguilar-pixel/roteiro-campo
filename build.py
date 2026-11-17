@@ -24,6 +24,9 @@ meta = '''<meta name="viewport" content="width=device-width, initial-scale=1, vi
 <link rel="apple-touch-icon" href="apple-touch-icon.png">'''
 head = rep(head, '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">', meta)
 head = rep(head, '<title>Roteiro das estações pluviométricas e fluviométricas</title>', '<title>Roteiro de Campo</title>')
+import re as _re
+head = _re.sub(r'<link rel="icon" href="data:image/svg\+xml,[^"]*">', '<link rel="icon" type="image/png" sizes="64x64" href="favicon.png"><link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">', head, count=1)
+assert 'href="favicon.png"' in head
 i = head.rfind('</style>'); head = head[:i] + ler('pwa.css') + head[i:]
 body = rep(body, 'Versão 29 · 09/10/2026', f'Versão {VERSAO} · app · {DATA}')
 body = rep(body, 'Alterações ficam salvas neste navegador.', 'Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem.')

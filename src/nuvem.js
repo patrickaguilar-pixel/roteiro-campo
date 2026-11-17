@@ -111,7 +111,7 @@ function aplicarRemoto(d, id){
 let telaEl = null;
 function tela(html){
   if (!telaEl){ telaEl = document.createElement('div'); telaEl.id = 'entrada'; telaEl.dataset.volatil = ''; document.body.appendChild(telaEl); }
-  telaEl.innerHTML = `<div class="en-caixa"><div class="en-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#0B6B45"/><path d="M14 34c4-10 9-6 12-12s6-6 8-8" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="1 6.5"/><circle cx="14" cy="34" r="4" fill="#fff"/><path d="M34 8c-4 0-7 3-7 7 0 5 7 11 7 11s7-6 7-11c0-4-3-7-7-7z" fill="#E0A100"/><circle cx="34" cy="15" r="2.6" fill="#0B6B45"/></svg></div>
+  telaEl.innerHTML = `<div class="en-caixa"><div class="en-logo" aria-hidden="true"><svg viewBox="0 0 48 48"><rect width="48" height="48" rx="11" fill="#0B6B45"/><path d="M10 38.5h28" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.5 5.3"/><path d="M24 8c-5.5 0-9.6 4.1-9.6 9.4 0 6.9 9.6 15.1 9.6 15.1s9.6-8.2 9.6-15.1C33.6 12.1 29.5 8 24 8z" fill="#E0A100"/><circle cx="24" cy="17.4" r="3.6" fill="#0B6B45"/><ellipse cx="24" cy="33.6" rx="5" ry="1.4" fill="#000" opacity=".18"/></svg></div>
     <h1>Roteiro de Campo</h1><p class="en-sub">Estações do Igam · Sala de Situação</p>${html}</div>`;
   return telaEl;
 }
