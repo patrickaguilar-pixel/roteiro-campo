@@ -5,11 +5,13 @@ R = os.path.dirname(os.path.abspath(__file__)); S = os.path.join(R, 'src')
 OUT = sys.argv[1] if len(sys.argv) > 1 else R
 os.makedirs(OUT, exist_ok=True)
 ler = lambda n: open(os.path.join(S, n), encoding='utf-8').read()
-VERSAO = '30'
+VERSAO = '31'
 DATA = time.strftime('%d/%m/%Y')
 cfg_path = os.path.join(S, 'firebase.json')
 cfg = json.load(open(cfg_path)) if os.path.exists(cfg_path) else None
 
+gm_path = os.path.join(S, 'google.txt')   # chave da Maps JavaScript API (restrita ao site); vazio = sem mapa do Google
+gmk = open(gm_path).read().strip() if os.path.exists(gm_path) else ''
 head, body = ler('head.html'), ler('body.html')
 def rep(s, a, b):
     assert a in s, 'trecho não encontrado: ' + a[:80]
@@ -33,7 +35,7 @@ body = rep(body, 'Alterações ficam salvas neste navegador.', 'Alterações fic
 app = ler('app.js') + ler('campo.js') + ler('celular.js')
 assert '</script' not in app.lower().replace('<\\/script', ''), 'o código do app não pode conter </script>'
 html = (head + body + ler('dados.html') + ler('libs.html') +
-        f'<script>window.RC_FIREBASE={json.dumps(cfg)};</script>\n' +
+        f'<script>window.RC_FIREBASE={json.dumps(cfg)};window.RC_GMAPS={json.dumps(gmk)};</script>\n' +
         '<script>' + ler('nuvem.js') + '</script>\n' +
         '<script type="text/plain" id="app-js">' + app + '</script>\n</body>\n</html>\n')
 open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(html)

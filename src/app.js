@@ -485,10 +485,38 @@ const FUNDOS = {
          reserva:() => [tl(ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}', {attribution:'Mapa © Esri'})]},
   ter:  {nome:'Terreno', dica:'Relevo com curvas de nível (OpenTopoMap)', camadas:() => [tl('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {maxZoom:17, subdomains:'abc', attribution:'© OpenStreetMap, SRTM · estilo © OpenTopoMap (CC-BY-SA)'})],
          reserva:() => [tl(ESRI + 'World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {attribution:'Mapa © Esri, HERE, Garmin, USGS'})]},
+  sat:  {nome:'Satélite', dica:'Imagem de satélite com estradas e nomes (Esri)', camadas:() => [tl(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:18, attribution:'Imagens © Esri, Maxar, Earthstar Geographics'}),
+           tl(ESRI + 'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:18, opacity:.9}), tl(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {maxNativeZoom:18})]},
+  gm:   {nome:'Google Maps', dica:'Mapa do Google', google:'roadmap', camadas:() => [camadaGoogle('roadmap')]},
+  gsat: {nome:'Google Satélite', dica:'Satélite do Google com nomes', google:'hybrid', camadas:() => [camadaGoogle('hybrid')]},
   nenhum: {nome:'Sem internet', dica:'Mapa leve que funciona sem internet: limites municipais, nomes das cidades e as rotas já traçadas', camadas:() => []}
 };
+/* Mapa do Google pela API oficial (Maps JavaScript + GoogleMutant). Só aparece com a chave em window.RC_GMAPS;
+   se a chave falhar ou estiver sem internet, volta sozinho para o satélite da Esri. */
+const temGoogle = () => !!window.RC_GMAPS;
+let gmCarga = null;
+function carregaGoogle(){
+  if (gmCarga) return gmCarga;
+  gmCarga = new Promise((ok, falha) => {
+    window.gm_authFailure = () => { falha(new Error('chave')); googleFalhou('A chave do Google Maps foi recusada.'); };
+    window.__gmPronto = () => { const s = document.createElement('script'); s.src = 'https://unpkg.com/leaflet.gridlayer.googlemutant@0.14.1/dist/Leaflet.GoogleMutant.js'; s.onload = ok; s.onerror = falha; document.head.appendChild(s); };
+    const s = document.createElement('script'); s.async = true; s.onerror = falha;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(window.RC_GMAPS)}&callback=__gmPronto&loading=async&language=pt-BR&region=BR`;
+    document.head.appendChild(s);
+  });
+  gmCarga.catch(() => { gmCarga = null; });
+  return gmCarga;
+}
+function googleFalhou(msg){ if (FUNDOS[fundoAtual] && FUNDOS[fundoAtual].google){ usarFundo('sat', false, false); toast((msg || 'O mapa do Google não carregou.') + ' Mostrando o satélite da Esri.'); } }
+function camadaGoogle(tipo){
+  const g = L.layerGroup();
+  carregaGoogle().then(() => { if (!fundoGrupo.hasLayer(g)) return; L.gridLayer.googleMutant({type:tipo, maxZoom:21, styles: tipo === 'roadmap' ? [{featureType:'poi.business', stylers:[{visibility:'off'}]}] : []}).addTo(g); })
+    .catch(() => googleFalhou(navigator.onLine === false ? 'Sem internet para o mapa do Google.' : ''));
+  return g;
+}
 let avisouSemRede = false, fundoAtual = null, fundoGrupo = L.layerGroup().addTo(map);
 function usarFundo(id, reserva, salvar){
+  if (FUNDOS[id] && FUNDOS[id].google && !temGoogle()) id = 'sat';
   const F = FUNDOS[id] || FUNDOS.ruas; fundoGrupo.clearLayers(); fundoAtual = id;
   const camadas = (reserva && F.reserva ? F.reserva : F.camadas)();
   let ok = 0, err = 0, avisou = false;
@@ -507,7 +535,8 @@ function usarFundo(id, reserva, salvar){
 const CtrlFundos = L.Control.extend({options:{position:'topright'}, onAdd(){
   const d = L.DomUtil.create('div', 'fundos'); d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Tipo de mapa');
   const ic = {nenhum:'<path d="M2 12a10 10 0 1 0 20 0 10 10 0 1 0-20 0"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/><path d="m4 4 16 16"/>', ruas:'<path d="M4 20 10 4M20 20 14 4M12 6v2M12 11v2M12 16v2"/>', osm:'<path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/>', sat:'<path d="M13 7 9 3 5 7l4 4"/><path d="m17 11 4 4-4 4-4-4"/><path d="m8 12 4 4 6-6-4-4Z"/><path d="m16 8 3-3"/><path d="M9 21a6 6 0 0 0-6-6"/>', ter:'<path d="m8 3 4 8 5-5 5 15H2L8 3z"/>'};
-  d.innerHTML = ['ruas', 'ter', 'nenhum'].map(k => `<button type="button" data-fundo="${k}" title="${FUNDOS[k].dica}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic[k]}</svg><span>${FUNDOS[k].nome}</span></button>`).join('');
+  ic.gm = ic.osm; ic.gsat = ic.sat;
+  d.innerHTML = [...(temGoogle() ? ['gm', 'gsat'] : []), 'sat', 'ruas', 'ter', 'nenhum'].map(k => `<button type="button" data-fundo="${k}" title="${FUNDOS[k].dica}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic[k]}</svg><span>${FUNDOS[k].nome}</span></button>`).join('');
   L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
   d.addEventListener('click', ev => { const b = ev.target.closest('[data-fundo]'); if (b) usarFundo(b.dataset.fundo, false, true); });
   return d; }});
@@ -2800,7 +2829,7 @@ if (state.auto === 'dividir') dividir(state.autoK || 3);
 else if (state.auto === 'ordem') dividir(state.autoK || 3, null, true);
 else if (state.auto === 'otimizar') state.etapas.forEach(otimizarEtapa);
 { const nFix = consertarPares(state, null); if (nFix && !state.auto){ save(); setTimeout(() => toast(`Corrigido: ${nFix} ${nFix === 1 ? 'estação estava repetida ou separada' : 'estações estavam repetidas ou separadas'} da sua dupla do mesmo local. Agora cada dupla fica na mesma etapa, em sequência.`, true), 1200); } }
-usarFundo(['ruas', 'ter', 'nenhum'].includes(state.fundo) ? state.fundo : 'ruas');
+usarFundo(FUNDOS[state.fundo] && state.fundo !== 'osm' ? state.fundo : 'ruas');
 syncCfg(); render(); fitAtual();
 /* ---- mapa sem internet: nomes das cidades (sedes do IBGE) desenhados aqui mesmo, sem baixar nada ---- */
 const rotulos = L.layerGroup().addTo(map);

@@ -228,6 +228,7 @@ html[data-folha=alta] #cRec,.plan-aberto #cRec,.plan-aberto #cTopo{display:none!
 }
 @media (max-width:760px){
 #cNav{grid-template-columns:repeat(5,1fr)}
+#cNav{grid-template-columns:repeat(4,1fr)!important}
 #cNav .ic-ui{padding:3px 12px}
 /* mapa mais leve: sem sombras nos marcadores */
 .celular .mk,.celular .pin-pern,.celular .pin-foto{box-shadow:none}
@@ -404,3 +405,70 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
 .c-dd2 .c-red{text-decoration:none}
 }
 @media (max-width:760px){ .celular .chip-dia{display:none!important} }
+/* ===================== v4: campo em lista, busca, todas as estações ===================== */
+@media (max-width:760px){
+#cBusca{flex:1;min-width:0;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:0;border-radius:24px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.2);font:500 15px/1 var(--corpo);color:#6B7773;text-align:left}
+#cBusca .ic-ui{flex:none;width:20px;height:20px;color:var(--placa)}
+#cBusca span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cTopo .c-sync{width:48px;height:48px}
+#cNav{grid-template-columns:repeat(4,1fr)!important}
+#cNav .ic-ui{padding:3px 12px}
+/* cabeçalho do dia */
+.k-cab{display:flex;align-items:center;gap:6px;margin:0 -4px 6px;touch-action:none}
+.k-seta{flex:none;width:42px;height:42px;border-radius:50%;border:1px solid #DDE4E1;background:#fff;display:grid;place-items:center;color:var(--tinta)}
+.k-seta:disabled{opacity:.3}
+.k-seta .ic-ui{width:20px;height:20px}
+.k-tit{flex:1;min-width:0;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:2px 0;color:var(--tinta)}
+.k-tit small{max-width:100%;font:700 11.5px/1.2 var(--corpo);letter-spacing:.05em;text-transform:uppercase;color:var(--c);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.k-tit b{display:flex;align-items:center;gap:4px;font:700 19px/1.25 var(--titulo);white-space:nowrap}
+.k-tit .ic-ui{width:18px;height:18px;color:var(--cinza)}
+.k-prog{display:grid;gap:6px;margin:0 0 10px}
+.k-prog>i{display:block;height:6px;border-radius:3px;background:#EEF2F0;overflow:hidden}
+.k-prog>i>i{display:block;height:100%;background:var(--c);border-radius:3px}
+.k-prog span{font-size:13px;color:var(--cinza);text-align:center}
+.k-prog b{color:var(--tinta)}
+.k-fim{display:flex;align-items:center;gap:10px;margin:2px 0 12px;padding:10px 12px;border-radius:12px;background:var(--papel);font-size:14px;color:#33413C}
+.k-fim .ic-ui{flex:none;width:20px;height:20px;color:#7B3FC4}
+.k-fim span{flex:1}
+.k-fim .tl-link{padding:4px 0;white-space:nowrap}
+.k-perto0{display:flex;align-items:center;gap:10px;width:100%;margin-top:14px;padding:12px 14px;border:1px dashed #C9D3CF;border-radius:14px;background:none;color:var(--placa);font:600 14px/1.3 var(--corpo);text-align:left}
+.k-perto0 .ic-ui{flex:none;width:20px;height:20px}
+.k-lista+.k-lista{margin-top:0}
+/* linha de estação */
+.e-lista{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:8px}
+.e-li{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 10px;border:1px solid #E3E8E6;border-left:4px solid var(--c);border-radius:14px;background:#fff}
+.e-li.prox{border-color:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 22%,transparent)}
+.e-li.feito{background:#F6FAF8;border-left-color:#2E9E5B}
+.e-le{flex:none;width:32px;height:32px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;font:700 14px/1 var(--titulo)}
+.e-li.feito .e-le{background:#2E9E5B}
+.e-le .ic-ui{width:18px;height:18px}
+.e-it{flex:1;min-width:0;border:0;background:none;text-align:left;padding:2px 0;display:grid;gap:3px;color:var(--tinta)}
+.e-it>b{font:600 15.5px/1.25 var(--corpo);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.e-li.feito .e-it>b{color:#4F5D58}
+.e-it small{font-size:12.5px;line-height:1.35;color:var(--cinza)}
+.e-km{color:#1A73E8;font-weight:700}
+.e-tags{display:flex;flex-wrap:wrap;gap:4px}
+.e-tag{font:600 11.5px/1 var(--corpo);padding:4px 7px;border-radius:6px;background:var(--papel);color:#4F5D58}
+.e-tag.ok{background:#E7F5EC;color:#07523A}
+.e-tag.prox{background:var(--c);color:#fff}
+.e-tags .c-sit{font-size:11.5px;padding:4px 7px}
+.e-bt{flex:none;width:44px;height:44px;border-radius:12px;border:1px solid #DDE4E1;background:#fff;display:grid;place-items:center;color:var(--tinta);text-decoration:none}
+.e-bt .ic-gm{width:24px;height:24px}
+.e-bt.chk{color:#9AA5A1}
+.e-bt.chk .ic-ui{width:22px;height:22px}
+.e-bt.chk[aria-pressed=true]{background:#2E9E5B;border-color:#2E9E5B;color:#fff}
+/* busca */
+.s-cab{position:sticky;top:0;z-index:2;background:#fff;padding:2px 0 4px;margin:0 -16px;padding-left:16px;padding-right:16px}
+.s-busca{display:flex;align-items:center;gap:8px;height:48px;padding:0 6px 0 14px;border-radius:14px;background:var(--papel);border:1px solid #E3E8E6;margin-bottom:10px}
+.s-busca .ic-ui{flex:none;width:20px;height:20px;color:var(--cinza)}
+.s-busca input{flex:1;min-width:0;height:100%;border:0;background:none;font:16px/1 var(--corpo);color:var(--tinta);outline:0}
+.s-busca input::-webkit-search-cancel-button{display:none}
+.s-busca button{flex:none;width:36px;height:36px;border:0;border-radius:50%;background:none;font-size:22px;color:var(--cinza)}
+.s-busca input:placeholder-shown+button{visibility:hidden}
+.s-cab .c-seg{grid-template-columns:repeat(3,1fr);margin-bottom:4px}
+.s-info{margin:8px 0;font-size:12.5px;color:var(--cinza)}
+/* mapa: estações do dia em destaque, as outras continuam visíveis */
+.celular .mk.apagado{opacity:.7;transform:scale(.78)}
+.celular .mk.hoje{transform:scale(1.15);box-shadow:0 0 0 3px rgba(255,255,255,.9),0 2px 6px rgba(0,0,0,.35)}
+.celular .mk.hoje.feito{opacity:.85}
+}

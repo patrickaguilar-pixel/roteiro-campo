@@ -23,7 +23,7 @@ if (CELULAR){
   }
   const _usarFundo = usarFundo;
   usarFundo = (...a) => { const r = _usarFundo(...a); try { ajustaLimites(); } catch(e){} return r; };
-  try { usarFundo(['ruas', 'ter', 'nenhum'].includes(state.fundo) ? state.fundo : 'ruas'); } catch(e){}
+  try { usarFundo(FUNDOS[state.fundo] && state.fundo !== 'osm' ? state.fundo : (temGoogle() ? 'gm' : 'ruas')); } catch(e){}
 
   /* ---------- ícones ---------- */
   const SV = (d, w = 2) => `<svg class="ic-ui" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -37,15 +37,19 @@ if (CELULAR){
   };
 
   /* ---------- estrutura ---------- */
+  IC.lupa = SV('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>', 2.2);
+  IC.lista = SV('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/>');
+  IC.terra = SV('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z"/>');
   const raiz = document.createElement('div'); raiz.id = 'cel';
   raiz.innerHTML = `
-    <header id="cTopo"><button type="button" id="cDia" aria-label="Escolher o dia"><i class="c-cor"></i><div><small></small><b></b></div>${IC.baixo}</button>
+    <header id="cTopo"><button type="button" id="cBusca" aria-label="Buscar estação">${IC.lupa}<span>Buscar estação, cidade ou código</span></button>
       <button type="button" id="cSync" class="c-sync" aria-label="Situação da nuvem"><i></i></button></header>
     <div id="cFlut"><button type="button" data-c="gps" aria-label="Minha localização">${svgI('gps')}</button><button type="button" data-c="camadas" aria-label="Fundo do mapa">${IC.camadas}</button></div>
     <button type="button" id="cGrav" aria-label="Gravar rota"></button>
     <section id="cFolha"><div class="cf-alca" aria-hidden="true"><span></span></div><div id="cCorpo"></div></section>
     <nav id="cNav" aria-label="Seções">
-      <button type="button" data-t="hoje">${IC.hoje}<span>Hoje</span></button>
+      <button type="button" data-t="hoje">${IC.hoje}<span>Campo</span></button>
+      <button type="button" data-t="estacoes">${IC.lista}<span>Estações</span></button>
       <button type="button" data-t="registros">${IC.reg}<span>Registros</span></button>
       <button type="button" data-t="mais">${IC.mais}<span>Mais</span><i class="c-dot" hidden></i></button>
     </nav>`;
@@ -54,11 +58,11 @@ if (CELULAR){
   const $ = s => raiz.querySelector(s);
   const navAlt = () => navC.getBoundingClientRect().height;
 
-  /* ---------- folha: baixa (só a próxima parada), média e alta ---------- */
+  /* ---------- folha: baixa (cabeçalho + 2 paradas), média e alta ---------- */
   let alt = 'baixa';
   const ALT = {
-    baixa: () => { const pk = corpo.querySelector('[data-peek]'); return pk ? Math.min(innerHeight * .5, pk.offsetTop + pk.offsetHeight + 30) : Math.min(corpo.scrollHeight + 24, 200); },
-    media: () => Math.round(innerHeight * .55), alta: () => innerHeight - 70 - navAlt()
+    baixa: () => { const pk = corpo.querySelector('[data-peek]'); return pk ? Math.min(innerHeight * .5, pk.offsetTop + pk.offsetHeight + 28) : Math.min(corpo.scrollHeight + 24, 220); },
+    media: () => Math.round(innerHeight * .52), alta: () => innerHeight - 70 - navAlt()
   };
   function altura(a, anima = true){
     alt = a || alt; folha.dataset.alt = alt; document.documentElement.dataset.folha = alt;
@@ -78,34 +82,36 @@ if (CELULAR){
       let a = ordem.map(k => [k, Math.abs(ALT[k]() - h)]).sort((x, y) => x[1] - y[1])[0][0];
       if (Math.abs(v) > .5) a = ordem[Math.max(0, Math.min(2, ordem.indexOf(alt) + (v > 0 ? -1 : 1)))];
       altura(a); };
-    folha.addEventListener('touchstart', ev => { if (ev.target.closest('.cf-alca, .cf-cab, .nx-cab') && !ev.target.closest('button, a')) ini(ev); }, {passive:true});
+    folha.addEventListener('touchstart', ev => { if (ev.target.closest('.cf-alca, .cf-cab, .k-cab') && !ev.target.closest('button, a, input')) ini(ev); }, {passive:true});
     folha.addEventListener('touchmove', mov, {passive:false});
     folha.addEventListener('touchend', fim);
     folha.querySelector('.cf-alca').addEventListener('click', () => altura(alt === 'baixa' ? 'media' : alt === 'media' ? 'alta' : 'baixa'));
     let py = null;
     corpo.addEventListener('touchstart', ev => { py = corpo.scrollTop <= 0 ? ev.touches[0].clientY : null; }, {passive:true});
     corpo.addEventListener('touchmove', ev => { if (py !== null && y0 === null && ev.touches[0].clientY - py > 80){ py = null; altura(alt === 'alta' ? 'media' : 'baixa'); } }, {passive:true});
+    corpo.addEventListener('scroll', () => { if (alt === 'baixa' && corpo.scrollTop > 30) altura('media'); }, {passive:true});
   })();
 
   /* ---------- navegação ---------- */
   let aba = 'hoje', pilha = [], regSeg = 'visitas', modoTudo = false;
+  let busca = '', filtro = 'pend', limite = 60;
   const atual = () => pilha.length ? pilha[pilha.length - 1] : {v: aba};
   function marcaNav(){ navC.querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-current', b.dataset.t === aba ? 'page' : 'false')); }
   function irTab(t, a){
-    aba = t; pilha = []; marcaNav();
+    aba = t; pilha = []; marcaNav(); limite = 60;
     if (t === 'hoje' && !modoTudo) focarDia(false);
-    desenhar(); altura(a || (t === 'hoje' ? 'baixa' : 'alta')); corpo.scrollTop = 0;
+    desenhar(); altura(a || (t === 'hoje' ? 'media' : 'alta')); corpo.scrollTop = 0;
     if (t === 'hoje' && !modoTudo){ const x = diaDoHoje(); if (x) requestAnimationFrame(() => enquadrarDia(x)); }
   }
   function abrir(v, a){ pilha.push(v); desenhar(); altura(a || (alt === 'baixa' ? 'media' : alt)); corpo.scrollTop = 0; }
   function voltar(){
-    if (pilha.length){ pilha.pop(); desenhar(); altura(pilha.length || aba !== 'hoje' ? alt : 'baixa'); corpo.scrollTop = 0; return true; }
+    if (pilha.length){ pilha.pop(); desenhar(); altura(pilha.length || aba !== 'hoje' ? alt : 'media'); corpo.scrollTop = 0; return true; }
     if (aba !== 'hoje'){ irTab('hoje'); return true; }
-    if (alt !== 'baixa'){ altura('baixa'); return true; }
+    if (alt === 'alta'){ altura('media'); return true; }
     return false;
   }
   navC.addEventListener('click', ev => { const b = ev.target.closest('[data-t]'); if (!b) return;
-    if (b.dataset.t === aba && !pilha.length){ altura(alt === 'baixa' ? 'alta' : 'baixa'); return; } irTab(b.dataset.t); });
+    if (b.dataset.t === aba && !pilha.length){ altura(alt === 'alta' ? 'baixa' : 'alta'); return; } irTab(b.dataset.t); });
   history.replaceState({c:0}, ''); history.pushState({c:1}, '');
   window.addEventListener('popstate', () => {
     const dl = document.querySelector('dialog[open]');
@@ -120,82 +126,87 @@ if (CELULAR){
   const onde = id => { buildLOC(); const w = LOC[id]; if (!w || !w.e) return {s: w && w.s, e:null}; const p = P[w.e.id]; return {s:w.s, e:w.e, k:w.k, p, inf: p && p.info[w.k]}; };
   const posGPS = () => GPS.pos && [GPS.pos.coords.latitude, GPS.pos.coords.longitude];
   const linkNav = id => `https://www.google.com/maps/dir/?api=1&destination=${ll(id)[0]},${ll(id)[1]}&travelmode=driving`;
+  const linkEarth = id => `https://earth.google.com/web/@${ll(id)[0]},${ll(id)[1]},700a,1500d,35y,0h,0t,0r`;
   const cab = (titulo, sub, voltarBt = pilha.length > 0) => `<div class="cf-cab">${voltarBt ? `<button type="button" class="cf-volta" data-c="voltar" aria-label="Voltar">${IC.volta}</button>` : ''}<div><h2>${titulo}</h2>${sub ? `<p>${sub}</p>` : ''}</div></div>`;
   const vazio = t => `<p class="c-vazio">${t}</p>`;
   const SIT = [['ok', 'Funcionando'], ['manut', 'Precisa de manutenção'], ['acesso', 'Sem acesso']];
   const fmtMin = h => { const m = Math.round(h * 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${m % 60 ? pad2(m % 60) : ''}`; };
   const quando = s => s.feito ? s.feito.replace(', ', ' às ') : '';
-  let diaHoje = null, focoHoje = null, focoCel = null;
+  let diaHoje = null, focoCel = null;
 
-  /* ---------- foco do mapa no dia (só as estações do dia, com as letras do Google Maps) ---------- */
+  /* Linha de estação usada em todas as listas: letra/número, nome, cidade, distância, e os dois botões de campo. */
+  function linhaEst(id, o = {}){
+    const est = EST[id]; if (!est) return '';
+    buildLOC(); const w = LOC[id], s = (w && w.s) || {}, q = posGPS(), dist = q ? havLL(q, ll(id)) : null;
+    const info = [o.hora, esc(estMun(est)), dist !== null ? `<b class="e-km">${fmtDist(dist)}</b>` : '', o.sub].filter(Boolean).join(' · ');
+    const tags = (s.feito ? `<span class="e-tag ok">Visitada${s.feito ? ' ' + esc(s.feito.split(',')[0]) : ''}</span>` : o.prox ? '<span class="e-tag prox">Próxima</span>' : '') +
+      (s.sit ? `<span class="c-sit s-${s.sit}">${SITUACOES[s.sit]}</span>` : '') + ((s.fotos || []).length ? `<span class="e-tag">${s.fotos.length} foto${s.fotos.length > 1 ? 's' : ''}</span>` : '');
+    return `<li class="e-li${s.feito ? ' feito' : ''}${o.prox ? ' prox' : ''}" style="--c:${o.cor || '#5E6B66'}">
+      <span class="e-le">${s.feito ? svgI('ok') : (o.letra != null ? o.letra : '')}</span>
+      <button type="button" class="e-it" data-c="estacao" data-id="${id}"><b>${esc(est.nome)} ${tipoBadge(est)}</b><small>${info}</small>${tags ? `<span class="e-tags">${tags}</span>` : ''}</button>
+      <a class="e-bt" href="${linkNav(id)}" target="_blank" rel="noopener" aria-label="Navegar até ${esc(est.nome)}">${IC.gm}</a>
+      ${w && w.e ? `<button type="button" class="e-bt chk" data-c="${s.feito ? 'desmarcar' : 'cheguei'}" data-id="${id}" aria-pressed="${!!s.feito}" aria-label="${s.feito ? 'Desmarcar visita' : 'Cheguei: marcar visitada'}">${svgI('ok')}</button>` : ''}</li>`;
+  }
+
+  /* ---------- mapa: todas as estações continuam visíveis; as do dia ganham as letras do Google Maps e destaque ---------- */
   const _marcadorEst = marcadorEst;
   marcadorEst = (id, rotulo, cor, extra = '') => {
     if (focoCel && state.aba === focoCel.eid){
       const e = etapaPorId(focoCel.eid), w = LOC[id], p = e && P[e.id];
-      if (!w || w.e !== e || !p || !p.info[w.k] || p.info[w.k].d !== focoCel.d) return L.layerGroup();
-      const g = gmPlano(e, p.days[focoCel.d]).letra[w.k]; if (g) rotulo = g.l;
+      if (w && w.e === e && p && p.info[w.k] && p.info[w.k].d === focoCel.d){ const g = gmPlano(e, p.days[focoCel.d]).letra[w.k]; if (g) rotulo = g.l; extra += ' hoje'; }
     }
     return _marcadorEst(id, rotulo, cor, extra);
   };
-  const tiraOutros = () => { if (focoCel) marcadores.eachLayer(l => { if (l instanceof L.CircleMarker) marcadores.removeLayer(l); }); };
   function diaDoHoje(){ const e = etapaCampo(), p = e && P[e.id]; if (!e || !p || !p.days.length) return null; return {e, p, d: diaHoje !== null && diaHoje < p.days.length ? diaHoje : diaCampo(e, p)}; }
   function focarDia(enquadrar = true){
     const x = diaDoHoje(); if (!x){ focoCel = null; return; }
-    focoCel = {eid:x.e.id, d:x.d}; state.aba = x.e.id; focusDay = x.d; _render(); tiraOutros(); topo();
+    focoCel = {eid:x.e.id, d:x.d}; state.aba = x.e.id; focusDay = x.d; _render(); topo();
     if (enquadrar) setTimeout(() => enquadrarDia(x), 40);
   }
-  function enquadrarDia(x){ try { map.fitBounds(L.latLngBounds(x.p.days[x.d].nodes.map(ll)), {paddingTopLeft:[36, 96], paddingBottomRight:[36, __alturaFolha() + 36], maxZoom:13, animate:false}); } catch(err){} }
+  function enquadrarDia(x){ try { map.fitBounds(L.latLngBounds(x.p.days[x.d].nodes.map(ll)), {paddingTopLeft:[36, 90], paddingBottomRight:[36, __alturaFolha() + 30], maxZoom:13, animate:false}); } catch(err){} }
   function verTudo(){ modoTudo = true; focoCel = null; focusDay = null; state.aba = 'geral'; _render(); topo(); setTimeout(fitAtual, 30); }
+  function mudarDia(d){ diaHoje = d; modoTudo = false; focarDia(false); desenhar(); const x = diaDoHoje(); if (x) requestAnimationFrame(() => enquadrarDia(x)); }
 
-  /* ================= HOJE ================= */
+  /* ================= CAMPO (o dia em lista) ================= */
   function telaHoje(){
     if (modoTudo) return telaTudo();
     const x = diaDoHoje();
-    if (!x) return cab('Hoje', '') + vazio('Nenhuma etapa montada ainda. Monte as etapas no computador ou em Mais → Etapas.');
+    if (!x) return cab('Campo', '') + vazio('Nenhuma etapa montada ainda. Monte as etapas no computador ou em Mais → Etapas.') + pertoDeVoce();
     const {e, p, d} = x, D = p.days[d];
     const ks = []; for (let k = D.i; k < D.j; k++) ks.push(k);
-    const pend = ks.filter(k => !e.stops[k].feito), feitos = ks.length - pend.length, g = gmPlano(e, D), q = posGPS();
-    const kF = focoHoje ? ks.find(k => e.stops[k].id === focoHoje) : undefined;
-    const atualK = kF !== undefined && !e.stops[kF].feito ? kF : (pend.length ? pend[0] : null);
-    let h = '';
-    if (atualK !== null){
-      const s = e.stops[atualK], est = EST[s.id], inf = p.info[atualK] || {}, dist = q ? havLL(q, ll(s.id)) : null, le = g.letra[atualK];
-      h += `<div class="nx" data-peek style="--c:${e.cor}"><div class="nx-cab"><span class="nx-letra">${le ? le.l : atualK + 1}</span>
-          <button type="button" class="nx-info" data-c="estacao" data-id="${s.id}"><small>Próxima parada · ${fmtHora(inf.cheg)}${dist !== null ? ` · ${fmtDist(dist)}` : ''}</small><b>${esc(est.nome)} ${tipoBadge(est)}</b><span>${esc(estMun(est))}</span></button></div>
-        <div class="nx-bt"><a class="c-bt gmb" href="${linkNav(s.id)}" target="_blank" rel="noopener">${IC.gm}<span>Navegar</span></a><button type="button" class="c-bt verde" data-c="cheguei" data-id="${s.id}">${svgI('ok')}<span>Cheguei</span></button></div></div>`;
-    } else h += `<div class="nx fim" data-peek><p>${svgI('ok')}<b>Dia ${d + 1} concluído</b></p>${d < p.days.length - 1 ? `<button type="button" class="c-bt pri" data-c="dia" data-d="${d + 1}">Ir para o dia ${d + 2} ${IC.seta}</button>` : '<span>Última viagem da etapa.</span>'}</div>`;
-    h += `<div class="h-prog" style="--c:${e.cor}"><i><i style="width:${ks.length ? Math.round(feitos / ks.length * 100) : 0}%"></i></i>
-        <div><span><b>${feitos} de ${ks.length}</b> visitadas</span><span>${fmtKm(D.km)} km · ${fmtHora(D.saida)}–${fmtHora(D.chegada)}</span></div></div>`;
-    if (pend.length) h += g.partes.map((pt, i) => `<a class="h-gm" href="${pt.url}" target="_blank" rel="noopener">${IC.gm}<div><b>${g.continuar ? 'Continuar no Google Maps' : 'Rota do dia no Google Maps'}${g.partes.length > 1 ? ` · ${i + 1}/${g.partes.length}` : ''}</b>
-        <small>${g.continuar ? `Da sua posição · faltam ${g.faltam}` : 'Todas as paradas, em ordem'} · mesmas letras do mapa</small></div>${IC.seta}</a>`).join('');
-    h += linhaDoTempo(e, p, d, D, ks, g, atualK);
-    h += `<button type="button" class="c-bt largo" data-c="gasto">${svgI('moeda')}<span>Registrar gasto ou abastecimento</span></button>`;
+    const pend = ks.filter(k => !e.stops[k].feito), feitos = ks.length - pend.length, g = gmPlano(e, D);
+    const proxK = pend.length ? pend[0] : null;
+    const orig = D.from === BH ? 'Belo Horizonte' : munNome(D.from), dest = D.to === BH ? 'Belo Horizonte' : munNome(D.to), hosp = D.to !== BH ? hospDe(e, D.to) : null;
+    let h = `<div class="k-cab" style="--c:${e.cor}">
+        <button type="button" class="k-seta" data-c="dia" data-d="${d - 1}" ${d ? '' : 'disabled'} aria-label="Dia anterior">${IC.volta}</button>
+        <button type="button" class="k-tit" data-c="dias"><small>${esc(e.nome)}</small><b>Dia ${d + 1}${D.data ? ' · ' + esc(fmtDS(D.data)) : ` de ${p.days.length}`}${IC.baixo}</b></button>
+        <button type="button" class="k-seta" data-c="dia" data-d="${d + 1}" ${d < p.days.length - 1 ? '' : 'disabled'} aria-label="Próximo dia">${IC.seta}</button></div>
+      <div class="k-prog" style="--c:${e.cor}"><i><i style="width:${ks.length ? Math.round(feitos / ks.length * 100) : 0}%"></i></i><span><b>${feitos}/${ks.length}</b> visitadas · ${fmtKm(D.km)} km · ${fmtHora(D.saida)}–${fmtHora(D.chegada)}</span></div>`;
+    const lis = ks.map(k => { const inf = p.info[k] || {}, le = g.letra[k]; return linhaEst(e.stops[k].id, {letra: le ? le.l : k + 1, hora: fmtHora(inf.cheg), cor: e.cor, prox: k === proxK}); });
+    h += `<ul class="e-lista k-lista" data-peek>${lis.slice(0, 2).join('')}</ul>`;
+    if (lis.length > 2) h += `<ul class="e-lista k-lista">${lis.slice(2).join('')}</ul>`;
+    if (!ks.length) h += vazio('Dia sem estações.');
+    h += `<p class="k-fim">${svgI('cama')}<span>${D.to === BH ? `Volta a Belo Horizonte · ${fmtHora(D.chegada)}` : `Pernoite em <b>${esc(dest)}</b>${hosp ? ` · ${esc(hosp.nome)}` : ''}`}</span>
+      ${D.to !== BH && !hosp ? `<button type="button" class="tl-link" data-c="apoio-novo" data-t="hosp" data-mun="${D.to}">+ hospedagem</button>` : ''}</p>`;
+    if (pend.length) h += g.partes.map((pt, i) => `<a class="h-gm" href="${pt.url}" target="_blank" rel="noopener">${IC.gm}<div><b>${g.continuar ? 'Continuar o dia no Google Maps' : 'Rota do dia no Google Maps'}${g.partes.length > 1 ? ` · ${i + 1}/${g.partes.length}` : ''}</b>
+        <small>${g.continuar ? `Da sua posição · faltam ${g.faltam}` : `Saindo de ${esc(orig)} · todas em ordem`} · mesmas letras do mapa</small></div>${IC.seta}</a>`).join('');
+    else if (ks.length && d < p.days.length - 1) h += `<button type="button" class="c-bt largo pri" data-c="dia" data-d="${d + 1}">Dia concluído · ir para o dia ${d + 2} ${IC.seta}</button>`;
+    h += `<div class="c-linha"><button type="button" class="c-bt" data-c="gasto">${svgI('posto')}<span>Gasto</span></button><button type="button" class="c-bt" data-c="tudo">${IC.camadas}<span>Ver tudo</span></button></div>`;
+    h += pertoDeVoce(new Set(ks.map(k => e.stops[k].id)));
     return h;
   }
-  function linhaDoTempo(e, p, d, D, ks, g, atualK){
-    const q = posGPS();
-    const pausaDe = x => (D.pausas || []).filter(z => z.x === x);
-    const linhaPausa = z => `<li class="tl-pausa"><i class="tl-no"></i><div><time>${fmtHora(z.ini)}</time><span>${/lan/i.test(z.tipo) ? 'Lanche' : 'Almoço'} · ${fmtMin(z.dur)}</span></div></li>`;
-    const trecho = x => { const lg = D.legs[x]; return lg ? `<li class="tl-trecho"><span>${num(lg.km, lg.km < 10 ? 1 : 0)} km · ${fmtMin(lg.h)}</span></li>` : ''; };
-    const orig = D.from === BH ? 'Belo Horizonte' : munNome(D.from), dest = D.to === BH ? 'Belo Horizonte' : munNome(D.to), hosp = D.to !== BH ? hospDe(e, D.to) : null;
-    const letraFim = g.continuar || !g.partes.length ? '' : g.partes[g.partes.length - 1].legenda.slice(-1)[0].l;
-    let h = `<p class="c-rot">O dia</p><ol class="tl" style="--c:${e.cor}"><li class="tl-ponta"><i class="tl-no">${g.continuar ? '' : 'A'}</i><div><time>${fmtHora(D.saida)}</time><b>Saída de ${esc(orig)}</b></div></li>`;
-    ks.forEach((k, i) => {
-      h += pausaDe(i).map(linhaPausa).join('') + trecho(i);
-      const s = e.stops[k], est = EST[s.id], inf = p.info[k] || {}, le = g.letra[k], dist = q ? havLL(q, ll(s.id)) : null;
-      const extra = [s.sit && SITUACOES[s.sit], (s.fotos || []).length && `${s.fotos.length} foto${s.fotos.length > 1 ? 's' : ''}`, s.relato && 'anotação'].filter(Boolean).join(' · ');
-      h += `<li class="tl-est${s.feito ? ' feito' : ''}${k === atualK ? ' atual' : ''}"><i class="tl-no">${s.feito ? svgI('ok') : le ? le.l : ''}</i>
-        <button type="button" class="tl-it" data-c="estacao" data-id="${s.id}"><time>${fmtHora(inf.cheg)}</time><b>${esc(est.nome)} ${tipoBadge(est)}</b>
-          <small>${s.feito ? `<span class="ok">Visitada ${esc(quando(s))}</span>${extra ? ' · ' + esc(extra) : ''}` : `${esc(estMun(est))}${inf.conj ? ' · junto com a anterior' : ''}${dist !== null ? ` · ${fmtDist(dist)}` : ''}`}</small></button></li>`;
-    });
-    h += pausaDe(ks.length).map(linhaPausa).join('') + trecho(ks.length);
-    h += `<li class="tl-ponta fim"><i class="tl-no">${letraFim}</i><div><time>${fmtHora(D.chegada)}</time><b>${D.to === BH ? 'Chegada em Belo Horizonte' : `Pernoite em ${esc(dest)}`}</b>
-        ${D.to !== BH ? (hosp ? `<small class="tl-hosp">${svgI('cama')}${esc(hosp.nome)}${hosp.contato ? ' · ' + esc(hosp.contato) : ''}</small>` : `<button type="button" class="tl-link" data-c="apoio-novo" data-t="hosp" data-mun="${D.to}">+ Registrar hospedagem</button>`) : ''}</div></li></ol>`;
-    return h;
+  /* Pendentes mais próximas de você (de qualquer dia ou etapa): para encaixar uma visita fora do plano. */
+  function pertoDeVoce(fora = new Set()){
+    const q = posGPS(); if (!q) return `<button type="button" class="k-perto0" data-c="gps-ligar">${svgI('gps')}<span>Ligar o GPS para ver as estações perto de você</span></button>`;
+    buildLOC();
+    const lst = state.etapas.flatMap(e => e.stops.filter(s => !s.feito && !fora.has(s.id)).map(s => ({e, s, d: havLL(q, ll(s.id))}))).sort((a, b) => a.d - b.d).slice(0, 5);
+    if (!lst.length) return '';
+    return `<p class="c-rot">Perto de você · pendentes</p><ul class="e-lista">${lst.map(({e, s}) => { const w = LOC[s.id], inf = P[e.id] && P[e.id].info[w.k];
+      return linhaEst(s.id, {letra: w.k + 1, cor: e.cor, sub: `${esc(e.nome)}${inf ? ` · dia ${inf.d + 1}` : ''}`}); }).join('')}</ul>`;
   }
   function telaTudo(){
     const T = totaisGerais();
-    return `<div data-peek>${cab('Todas as etapas', `${T.n} estações · ${fmtKm(T.km)} km · ${T.d} dias`)}<button type="button" class="c-bt largo pri" data-c="dias">Escolher um dia ${IC.seta}</button></div>
+    return `<div data-peek>${cab('Todas as etapas', `${T.n} estações · ${fmtKm(T.km)} km · ${T.d} dias`)}<button type="button" class="c-bt largo pri" data-c="dias">Escolher o dia de campo ${IC.seta}</button></div>
       <div class="c-etapas">${state.etapas.map(e => cartaoEtapa(e, 'etapa-hoje')).join('')}</div>`;
   }
   const cartaoEtapa = (e, acao) => { const p = P[e.id], vis = e.stops.filter(s => s.feito).length;
@@ -210,6 +221,30 @@ if (CELULAR){
         let n = 0, f = 0; for (let k = D.i; k < D.j; k++){ n++; if (e.stops[k].feito) f++; }
         const sel = x && !modoTudo && x.e === e && x.d === d;
         return `<button type="button" class="d-dia${sel ? ' sel' : ''}${n && f === n ? ' ok' : ''}" data-c="dia-ir" data-id="${e.id}" data-d="${d}" style="--c:${e.cor}"><b>Dia ${d + 1}</b><span>${D.data ? esc(fmtD(D.data)) : `${n} est.`}</span><i>${f}/${n}</i></button>`; }).join('')}</div>`; });
+    return h;
+  }
+  /* ================= ESTAÇÕES: busca, filtro e distância ================= */
+  function listaEstacoes(){
+    buildLOC(); const q = posGPS(), t = semAcento(busca).toLowerCase().trim();
+    let L0 = state.etapas.flatMap(e => e.stops.map((s, k) => ({id:s.id, e, k, s})));
+    if (t) L0 = L0.concat(state.pool.map((s, k) => ({id:s.id, e:null, k, s})));
+    if (filtro === 'pend' && !t) L0 = L0.filter(x => !x.s.feito); else if (filtro === 'vis') L0 = L0.filter(x => x.s.feito);
+    if (t){ const ws = t.split(/\s+/); L0 = L0.filter(x => { const est = EST[x.id]; const alvo = semAcento([est.nome, estMun(est), est.cod.join(' '), est.rio || '', x.e ? x.e.nome : ''].join(' ')).toLowerCase(); return ws.every(w => alvo.includes(w)); }); }
+    if (q) L0.forEach(x => x.d = havLL(q, ll(x.id))), L0.sort((a, b) => a.d - b.d);
+    return L0;
+  }
+  function telaEstacoes(){
+    const seg = (k, n) => `<button type="button" data-c="filtro" data-v="${k}" aria-pressed="${filtro === k}">${n}</button>`;
+    return `<div class="s-cab"><label class="s-busca">${IC.lupa}<input id="cQ" type="search" enterkeyhint="search" autocomplete="off" placeholder="Nome, cidade, código ou rio" value="${esc(busca)}"><button type="button" data-c="limpar" aria-label="Limpar">×</button></label>
+      <div class="c-seg">${seg('pend', 'Pendentes')}${seg('vis', 'Visitadas')}${seg('todas', 'Todas')}</div></div><div id="cRes">${resultados()}</div>`;
+  }
+  function resultados(){
+    const lst = listaEstacoes(), q = posGPS();
+    let h = `<p class="s-info">${lst.length} estaç${lst.length === 1 ? 'ão' : 'ões'}${q ? ' · mais perto primeiro' : ' · ligue o GPS para ordenar pela distância'}</p>`;
+    h += lst.length ? `<ul class="e-lista">${lst.slice(0, limite).map(x => { const inf = x.e && P[x.e.id] && P[x.e.id].info[x.k];
+        return linhaEst(x.id, {letra: x.e ? x.k + 1 : '', cor: x.e ? x.e.cor : '#5E6B66', sub: x.e ? `${esc(x.e.nome)}${inf ? ` · dia ${inf.d + 1}` : ''}` : 'sem etapa'}); }).join('')}</ul>` +
+        (lst.length > limite ? `<button type="button" class="c-bt largo" data-c="mais-est">Mostrar mais (${lst.length - limite})</button>` : '')
+      : vazio(busca ? 'Nada encontrado.' : filtro === 'pend' ? 'Todas as estações já foram visitadas.' : 'Nenhuma estação aqui.');
     return h;
   }
   /* ================= REGISTRO DA VISITA ================= */
@@ -230,9 +265,10 @@ if (CELULAR){
       <p class="v-salvo" id="cNotaSt">${s.relato ? 'Salvo' : 'Salva sozinha ao sair do campo'}</p>`;
     if (s.nota) h += `<p class="c-rot">Observação do planejamento</p><p class="c-relato">${esc(s.nota)}</p>`;
     h += `<p class="c-rot">Localização</p><div class="v-loc"><span>${ll(id)[0].toFixed(5)}, ${ll(id)[1].toFixed(5)}</span><button type="button" class="tl-link" data-c="copiar" data-id="${id}">Copiar</button><button type="button" class="tl-link" data-c="ver" data-id="${id}">Ver no mapa</button></div>
+      <a class="c-bt largo" href="${linkEarth(id)}" target="_blank" rel="noopener">${IC.terra}<span>Abrir no Google Earth</span></a>
       ${a && a.nivel !== 'ok' ? `<p class="c-dica">${a.nivel === 'sem' ? 'Sem estrada mapeada até a estação' : 'O último trecho não tem estrada mapeada'} (${fmtM(a.d)}). Confirme o acesso com o observador.</p>` : ''}`;
     if (o.inf && s.feito){ const D = o.p.days[o.inf.d]; let prox = null; for (let k = D.i; k < D.j; k++) if (!o.e.stops[k].feito && o.e.stops[k].id !== id){ prox = o.e.stops[k].id; break; }
-      h += prox ? `<button type="button" class="c-bt largo pri" data-c="estacao" data-id="${prox}">Próxima: ${esc(EST[prox].nome)} ${IC.seta}</button>` : `<button type="button" class="c-bt largo pri" data-c="voltar-hoje">Voltar ao dia ${IC.seta}</button>`; }
+      h += prox ? `<button type="button" class="c-bt largo pri" data-c="estacao" data-id="${prox}" data-mapa="1">Próxima: ${esc(EST[prox].nome)} ${IC.seta}</button>` : `<button type="button" class="c-bt largo pri" data-c="voltar-hoje">Voltar ao dia ${IC.seta}</button>`; }
     return h;
   }
   /* ================= GRAVAR ROTA ================= */
@@ -316,21 +352,24 @@ if (CELULAR){
   }
   function telaCamadas(){
     const f = state.fundo || 'ruas', op = (k, n, d) => `<button type="button" data-c="fundo" data-id="${k}" aria-pressed="${f === k}"><b>${n}</b><small>${d}</small></button>`;
-    return cab('Mapa', '') + `<div class="c-fundos">${op('ruas', 'Estradas', 'Rodovias e cidades')}${op('ter', 'Terreno', 'Relevo')}${op('nenhum', 'Sem internet', 'Mais leve: limites e rotas guardadas')}</div>
+    return cab('Mapa', '') + `<div class="c-fundos">${temGoogle() ? op('gm', 'Google Maps', 'Ruas do Google') + op('gsat', 'Google Satélite', 'Igual ao Google Earth') : ''}${op('sat', 'Satélite', 'Imagem real com estradas')}${op('ruas', 'Estradas', 'Rodovias e cidades')}${op('ter', 'Terreno', 'Relevo')}${op('nenhum', 'Sem internet', 'Mais leve: limites e rotas guardadas')}</div>
       <label class="c-tg"><input type="checkbox" data-c="mostrar" ${GRV.mostrar ? 'checked' : ''}><span>Rotas gravadas</span></label>`;
   }
 
   /* ---------- desenhar ---------- */
   function desenhar(){
     const v = atual(); salvarNota();
-    const T = {hoje:telaHoje, registros:telaRegistros, mais:telaMais, dias:telaDias, gravar:telaGravar, etapas:telaEtapas, relatorios:telaRelatorios, gasto:telaGasto, camadas:telaCamadas,
+    const T = {hoje:telaHoje, estacoes:telaEstacoes, registros:telaRegistros, mais:telaMais, dias:telaDias, gravar:telaGravar, etapas:telaEtapas, relatorios:telaRelatorios, gasto:telaGasto, camadas:telaCamadas,
       equipe:() => cab('Equipe e acesso', '') + '<div id="cEq" class="c-eq"></div>'};
     corpo.innerHTML = v.v === 'estacao' ? telaVisita(v.id) : v.v === 'etapa' ? telaEtapa(v.id) : (T[v.v] || telaHoje)();
     hidratar(corpo);
     if (v.v === 'equipe') NUV.abrirEquipe(document.getElementById('cEq'));
     if (v.v === 'mais' && EM_NUVEM && NUV.contarPedidos) NUV.contarPedidos().then(n => { const b = document.getElementById('cPed'); if (b){ b.hidden = !n; b.textContent = n; } });
     requestAnimationFrame(() => { if (alt === 'baixa') altura('baixa', false); });
+    if (v.v === 'estacoes' && focoBusca){ focoBusca = false; const i = document.getElementById('cQ'); if (i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
   }
+  let focoBusca = false;
+  corpo.addEventListener('input', ev => { if (ev.target.id === 'cQ'){ busca = ev.target.value; limite = 60; const r = document.getElementById('cRes'); if (r){ r.innerHTML = resultados(); } if (alt !== 'alta') altura('alta'); } });
   function salvarNota(){
     const t = document.getElementById('cNota'); if (!t || !corpo.contains(t)) return;
     buildLOC(); const w = LOC[t.dataset.id]; if (!w) return; const v = t.value.trim();
@@ -353,17 +392,21 @@ if (CELULAR){
     const c = b.dataset.c, id = b.dataset.id;
     if (c === 'voltar') voltar();
     else if (c === 'voltar-hoje') irTab('hoje');
-    else if (c === 'estacao'){ if (atual().v === 'estacao') pilha.pop(); abrir({v:'estacao', id}, 'alta'); }
-    else if (c === 'cheguei'){ marcarVisita(id, true); focoHoje = id; if (atual().v !== 'estacao') abrir({v:'estacao', id}, 'alta'); else desenhar(); toast('Visita registrada. Marque a situação, tire fotos e anote.', true); }
+    else if (c === 'estacao') abrirEstacao(id);
+    else if (c === 'cheguei'){ marcarVisita(id, true); if (atual().v !== 'estacao') abrirEstacao(id, 'alta'); else desenhar(); toast('Visita registrada. Marque a situação, tire fotos e anote.', true); }
+    else if (c === 'filtro'){ filtro = b.dataset.v; limite = 60; desenhar(); }
+    else if (c === 'limpar'){ busca = ''; const i = document.getElementById('cQ'); if (i){ i.value = ''; i.focus(); } const r = document.getElementById('cRes'); if (r) r.innerHTML = resultados(); }
+    else if (c === 'mais-est'){ limite += 100; const r = document.getElementById('cRes'); if (r) r.innerHTML = resultados(); }
+    else if (c === 'gps-ligar'){ gpsLigar(); toast('Procurando o GPS…'); }
     else if (c === 'desmarcar'){ if (confirm('Desmarcar a visita desta estação?')){ marcarVisita(id, false); desenhar(); } }
     else if (c === 'sit'){ buildLOC(); const w = LOC[id]; if (w){ snapshot(); w.s.sit = w.s.sit === b.dataset.v ? '' : b.dataset.v; save(); desenhar(); } }
     else if (c === 'foto') iniciarFoto(id, true);
     else if (c === 'galeria') iniciarFoto(id, false);
     else if (c === 'copiar') copiar(`${ll(id)[0].toFixed(6)}, ${ll(id)[1].toFixed(6)}`);
     else if (c === 'ver'){ altura('baixa'); mostrarNoMapa(id); }
-    else if (c === 'dia'){ diaHoje = +b.dataset.d; focoHoje = null; focarDia(false); desenhar(); altura('baixa'); const x = diaDoHoje(); if (x) requestAnimationFrame(() => enquadrarDia(x)); }
+    else if (c === 'dia') mudarDia(+b.dataset.d);
     else if (c === 'dias') abrir({v:'dias'}, 'alta');
-    else if (c === 'dia-ir'){ campoEtapaId = id; diaHoje = +b.dataset.d; focoHoje = null; modoTudo = false; irTab('hoje'); }
+    else if (c === 'dia-ir'){ campoEtapaId = id; diaHoje = +b.dataset.d; modoTudo = false; irTab('hoje'); }
     else if (c === 'etapa-hoje'){ campoEtapaId = id; diaHoje = null; modoTudo = false; irTab('hoje'); }
     else if (c === 'tudo'){ verTudo(); aba = 'hoje'; pilha = []; marcaNav(); desenhar(); altura('media'); }
     else if (c === 'apoio-novo'){ const m = b.dataset.mun, e = etapaCampo(); abrirFormApoio({tipo:b.dataset.t, mun:m, lat:MUN[m].lat, lon:MUN[m].lon, etapa: e ? e.id : ''}); }
@@ -394,22 +437,21 @@ if (CELULAR){
     else if (c === 'copia') salvarNoArquivo(true);
     else if (c === 'fundo'){ usarFundo(id, false, true); desenhar(); }
   });
-  function mostrarNoMapa(id){ const p = ll(id); map.setView(p, Math.max(map.getZoom(), 14), {animate:false}); map.panBy([0, (__alturaFolha() - 70) / 2], {animate:false}); }
+  /* Abre o registro da estação com o mapa centrado nela, acima da folha. */
+  function abrirEstacao(id, a = 'media'){ if (pilha.length && atual().v === 'estacao') pilha.pop(); abrir({v:'estacao', id}, a); if (a !== 'alta') requestAnimationFrame(() => mostrarNoMapa(id)); }
+  function mostrarNoMapa(id){ const p = ll(id); map.setView(p, Math.max(map.getZoom(), 14), {animate:false}); map.panBy([0, (__alturaFolha() - 70) / 2], {animate:false}); destacar(ll(id), 22); }
   raiz.querySelector('#cFlut').addEventListener('click', ev => {
     const b = ev.target.closest('[data-c]'); if (!b) return;
     if (b.dataset.c === 'gps'){ if (!GPS.on) gpsLigar(); else if (GPS.pos){ GPS.seguir = true; map.setView([GPS.pos.coords.latitude, GPS.pos.coords.longitude], Math.max(map.getZoom(), 15)); } else gpsDesligar(); }
     if (b.dataset.c === 'camadas') abrir({v:'camadas'}, 'media');
   });
   $('#cGrav').onclick = () => { if (atual().v === 'gravar') return; abrir({v:'gravar'}, 'media'); };
-  $('#cDia').onclick = () => { if (aba !== 'hoje'){ aba = 'hoje'; pilha = []; marcaNav(); } abrir({v:'dias'}, 'alta'); };
+  $('#cBusca').onclick = () => { focoBusca = true; irTab('estacoes'); };
   $('#cSync').onclick = () => { irTab('mais'); if (EM_NUVEM) NUV.atualizarAgora(); };
   popupEst = (id) => { if (REG.on) return; if (pilha.length && atual().v === 'estacao') pilha.pop(); abrir({v:'estacao', id}, 'media'); };
 
   /* ---------- atualizações ---------- */
   function topo(){
-    const x = diaDoHoje(), btn = $('#cDia');
-    if (modoTudo || !x){ btn.querySelector('small').textContent = metaDe(PJ_ID) ? metaDe(PJ_ID).nome : 'Roteiro'; btn.querySelector('b').textContent = 'Todas as etapas'; btn.style.setProperty('--c', '#0B6B45'); }
-    else { const D = x.p.days[x.d]; btn.querySelector('small').textContent = x.e.nome; btn.querySelector('b').textContent = `Dia ${x.d + 1}${D.data ? ' · ' + fmtDS(D.data) : ` de ${x.p.days.length}`}`; btn.style.setProperty('--c', x.e.cor); }
     const [cls] = rotuloNuvem(NUV.status()); $('#cSync').className = 'c-sync ' + cls;
     navC.querySelector('.c-dot').hidden = cls !== 'erro';
     $('#cFlut [data-c=gps]').classList.toggle('on', GPS.on);
@@ -419,14 +461,14 @@ if (CELULAR){
   }
   NUV.on(() => { topo(); if (atual().v === 'mais' && !digitando()) desenhar(); });
   const _render = render;
-  render = function(){ _render(); try { ajustaLimites(); } catch(e){} tiraOutros(); topo(); if (!digitando()) desenhar(); };
+  render = function(){ _render(); try { ajustaLimites(); } catch(e){} topo(); if (!digitando()) desenhar(); };
   const _atuG = atualizarGravacaoUI;
   atualizarGravacaoUI = function(so){ _atuG(so); topo(); if (atual().v === 'gravar' && !digitando()) desenhar(); };
   setInterval(() => { if (GRV.t){ topo(); if (atual().v === 'gravar' && !digitando()){ const n = numerosGrav(), set = (k, v) => { const el = corpo.querySelector(`[data-r=${k}]`); if (el) el.textContent = v; }; set('km', num(n.km, n.km < 100 ? 1 : 0)); set('t', fmtDur(n.seg)); } } }, 5000);
   const _gL = gpsLigar, _gD = gpsDesligar;
   gpsLigar = () => { _gL(); topo(); };
   gpsDesligar = () => { _gD(); topo(); if (atual().v === 'gravar') desenhar(); };
-  setInterval(() => { if (GPS.on && ['hoje', 'estacao'].includes(atual().v) && !digitando() && alt === 'baixa') desenhar(); }, 30000);
+  setInterval(() => { if (GPS.on && ['hoje', 'estacoes'].includes(atual().v) && !digitando() && corpo.scrollTop < 10) desenhar(); }, 30000);
   window.addEventListener('resize', () => altura(alt, false));
   setSheet = () => {};
   const fechaPlan = document.createElement('button'); fechaPlan.type = 'button'; fechaPlan.id = 'cPlanFechar'; fechaPlan.innerHTML = '‹ Voltar ao app'; fechaPlan.onclick = () => fecharPlanejamento();
@@ -435,5 +477,5 @@ if (CELULAR){
   function fecharPlanejamento(){ document.documentElement.classList.remove('plan-aberto'); if (modoTudo) verTudo(); else focarDia(); desenhar(); }
   /* ---------- começo ---------- */
   aba = 'hoje'; marcaNav(); focarDia(); desenhar(); topo();
-  setTimeout(() => { altura('baixa', false); const x = diaDoHoje(); if (x) enquadrarDia(x); }, 60);
+  setTimeout(() => { altura('media', false); const x = diaDoHoje(); if (x) enquadrarDia(x); }, 60);
 }
