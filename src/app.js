@@ -121,10 +121,10 @@ function normaliza(s){
   const visto = new Set(), ok = x => x && EST[x.id] && !visto.has(x.id) && visto.add(x.id);
   s.cfg = {...DEF_CFG, ...(s.cfg || {})};
   s.etapas = (s.etapas || []).map(e => ({id:e.id || 'e' + uid(), nome:e.nome || 'Etapa', cor:e.cor || CORES[0], inicio:e.inicio || '', dias:e.dias || null,
-    stops:(e.stops || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, relato:x.relato || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []})),
+    stops:(e.stops || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []})),
     pern:Object.fromEntries(Object.entries(e.pern || {}).filter(([k, v]) => EST[k] && MUN[v])), ordem: e.ordem === 'manual' ? 'manual' : 'auto'}));
   s.vista = s.vista === 'mun' ? 'mun' : 'est';
-  s.pool = (s.pool || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, relato:x.relato || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []}));
+  s.pool = (s.pool || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []}));
   /* versão anterior: as duas estações de uma mesma linha do Anexo eram um só ponto; a segunda entra logo depois da primeira */
   const irma = lst => { for (let i = lst.length - 1; i >= 0; i--){ const b = lst[i].id + 'b'; if (EST[b] && !visto.has(b)){ visto.add(b); lst.splice(i + 1, 0, {...novaStop(b), fixo: lst[i].fixo}); s.migrouPares = (s.migrouPares || 0) + 1; } } };
   s.etapas.forEach(e => irma(e.stops)); irma(s.pool);
@@ -155,7 +155,8 @@ let avisouCheio = false;
 /* Carimbo de tempo por estação e por registro: permite juntar, sem perder nada, alterações feitas ao mesmo tempo
    em aparelhos diferentes (cada estação/registro fica com a versão alterada por último). */
 let ANT = null;
-const chaveParada = x => JSON.stringify([x.visita ?? null, x.extra ?? null, x.nota || '', x.feito || null, x.relato || '', !!x.fixo, (x.fotos || []).map(f => f.id + '|' + (f.legenda || ''))]);
+const chaveParada = x => JSON.stringify([x.visita ?? null, x.extra ?? null, x.nota || '', x.feito || null, x.relato || '', x.sit || '', !!x.fixo, (x.fotos || []).map(f => f.id + '|' + (f.legenda || ''))]);
+const SITUACOES = {ok:'Funcionando', manut:'Precisa de manutenção', acesso:'Sem acesso / não encontrada'};
 const chaveApoio = a => { const {_t, ...r} = a; return JSON.stringify(r); };
 function indiceTempos(st){ const p = {}, a = {}, f = {};
   [...st.etapas.flatMap(e => e.stops), ...st.pool].forEach(x => { p[x.id] = chaveParada(x); (x.fotos || []).forEach(ft => f[ft.id] = 1); });
@@ -1451,7 +1452,7 @@ function abrirCrono(){
       <thead><tr><th>Nº</th><th>Dia</th><th>Horário</th><th>Estação</th><th>Código</th><th>Município</th><th>Acesso</th><th>Situação</th><th>Observações e anotações da visita</th></tr></thead><tbody>
       ${e.stops.map((s, k) => { const est = EST[s.id], inf = p.info[k], a = acesso(s.id);
         const ac = a ? (a.nivel === 'ok' ? `Via a ${fmtM(a.d)}` : `<span class="${a.nivel}">${a.nivel === 'sem' ? 'Sem via mapeada' : 'Último trecho sem via'}: ${fmtM(a.d)}</span>`) : '–';
-        const ob = [s.nota && `<b>Obs.:</b> ${esc(s.nota)}`, s.relato && `<b>Visita:</b> ${esc(s.relato)}`].filter(Boolean).join('<br>');
+        const ob = [s.nota && `<b>Obs.:</b> ${esc(s.nota)}`, s.sit && `<b>Situação:</b> ${esc(SITUACOES[s.sit] || s.sit)}`, s.relato && `<b>Visita:</b> ${esc(s.relato)}`].filter(Boolean).join('<br>');
         return `<tr><td class="n">${k+1}</td><td class="n">${inf.d+1}</td><td class="nw">${inf.conj ? '<span class="rot" title="Mesma visita da parada anterior (estação no mesmo local): não conta hora própria">↳ junto com a anterior</span>' : `${fmtHora(inf.cheg)}–${fmtHora(inf.said)}`}</td><td><b>${esc(est.nome)}</b> ${tipoBadge(est)}${s.fixo ? ' <span class="rot">(manual)</span>' : ''}</td><td class="nw">${est.cod.map(esc).join('<br>')}</td><td>${esc(estMun(est))}</td><td>${ac}</td>
           <td class="nw">${s.feito ? `<span class="ok-r">Visitada<br>${esc(s.feito)}</span>` : '<span class="falta">Pendente</span>'}${(s.fotos || []).length ? `<br>📷 ${s.fotos.length}` : ''}</td><td>${ob || ''}</td></tr>`; }).join('')}</tbody></table>`;
     h += tabelaApoios(apoiosDe(e), 'Hospedagens, paradas e gastos da etapa', e.cor, false);
@@ -2129,7 +2130,7 @@ document.getElementById('bLimparOk').onclick = () => {
   const st = [...state.etapas.flatMap(e => e.stops), ...state.pool];
   if (sel.has('apoios')) state.apoios = [];
   st.forEach(x => {
-    if (sel.has('visitas')){ x.feito = null; x.relato = ''; }
+    if (sel.has('visitas')){ x.feito = null; x.relato = ''; x.sit = ''; }
     if (sel.has('notas')) x.nota = '';
     if (sel.has('fotos')) x.fotos = [];
     if (sel.has('fixos')) x.fixo = false;

@@ -41,7 +41,7 @@ RC.trj = TRJ;
 /* ---------- mesclagem: cada estação e cada registro (hospedagem, parada, gasto) fica com a versão alterada por
    último (carimbo _t gravado pelo app a cada alteração); fotos de uma mesma estação se somam; exclusões valem. ---------- */
 const J = v => JSON.stringify(v === undefined ? null : v);
-const CAMPOS_PARADA = ['visita', 'extra', 'nota', 'feito', 'relato', 'fixo', 'fotos', '_t'];
+const CAMPOS_PARADA = ['visita', 'extra', 'nota', 'feito', 'relato', 'sit', 'fixo', 'fotos', '_t'];
 function mesclar(loc, rem){
   const locNovo = (loc.mod || 0) >= (rem.mod || 0);
   const est = JSON.parse(JSON.stringify(locNovo ? loc : rem));
