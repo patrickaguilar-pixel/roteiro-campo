@@ -4551,7 +4551,8 @@ function ligarSincronizacao(){
       if (d.excluido){ if (loc && !loc.excluido){ await TRJ.put(id, {...loc, excluido:true, pts:[], mod:d.mod}); mudou = true; } continue; }
       if (loc && (loc.mod || 0) >= (d.mod || 0)) continue;
       let pts = []; try { pts = decodificar(d.pts); } catch(e){}
-      await TRJ.put(id, {id, pid:d.pid, etapa:d.etapa || null, inicio:d.inicio, fim:d.fim, km:d.km, seg:d.seg, por:d.por, nome:d.nomePor || d.por, mod:d.mod, pts, nuvem:true}); mudou = true;
+      let lac = []; try { lac = JSON.parse(d.lac || '[]'); } catch(e){}
+      await TRJ.put(id, {id, pid:d.pid, etapa:d.etapa || null, inicio:d.inicio, fim:d.fim, km:d.km, seg:d.seg, por:d.por, nome:d.nomePor || d.por, mod:d.mod, pts, lac, importado:!!d.importado, nuvem:true}); mudou = true;
       const e = lsGet(K.tenv) || {}; e[id] = d.mod; lsSet(K.tenv, e);
     }
     if (mudou && RC.aoTrajetos) try { RC.aoTrajetos(); } catch(e){}
@@ -4662,7 +4663,7 @@ async function enviarTrajetos(){
     if (!t || !t.id || t.gravando) continue;
     if (env[t.id] === t.mod) continue;
     const doc = t.excluido ? {excluido:true, mod:t.mod, por:RC.email} :
-      {pid:t.pid, etapa:t.etapa || null, inicio:t.inicio, fim:t.fim, km:t.km, seg:t.seg, por:t.por || RC.email, nomePor:t.nome || RC.nome, mod:t.mod, n:(t.pts || []).length, pts:codificar(t.pts || []), excluido:false};
+      {pid:t.pid, etapa:t.etapa || null, inicio:t.inicio, fim:t.fim, km:t.km, seg:t.seg, por:t.por || RC.email, nomePor:t.nome || RC.nome, mod:t.mod, n:(t.pts || []).length, pts:codificar(t.pts || []), lac:J(t.lac || []), importado:!!t.importado, excluido:false};
     if (doc.pts && doc.pts.length > 980000) continue;
     ref.trajetos.doc(t.id).set(doc).catch(erroNuvem);
     env[t.id] = t.mod; lsSet(K.tenv, env);
@@ -7858,6 +7859,26 @@ const GRV = {t:null, pausa:false, ultimoSalvo:0, camada:L.layerGroup().addTo(map
 try { GRV.mostrar = localStorage.getItem('rc-mostrar-trajetos') !== '0'; } catch(e){}
 const COR_TRJ = '#C2410C';
 const kmTrecho = (a, b) => havLL([a[0], a[1]], [b[0], b[1]]);
+async function preencherLacuna(t, a, b, kmProv, dt){
+  let geo = null, km = null;
+  try { const r = await fetchT(`${OSRM}/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`, 15000); const j = await r.json();
+    if (j.code === 'Ok'){ geo = j.routes[0].geometry.coordinates.map(([lo, la]) => [la, lo]); km = j.routes[0].distance / 1000; } } catch(e){}
+  const min = Math.round(dt / 60);
+  if (geo && geo.length > 2 && km < kmProv * 3){
+    const i = t.pts.indexOf(b); if (i < 1) return;
+    const n = geo.length - 1, meio = geo.slice(1, -1).map((p, k) => [+p[0].toFixed(6), +p[1].toFixed(6), Math.round(a[2] + (b[2] - a[2]) * (k + 1) / n)]);
+    t.pts.splice(i, 0, ...meio); t.km += km - kmProv;
+    toast(`O GPS ficou ${min} min sem registrar (app fora da tela). O trecho de ${num(km, 1)} km foi traçado pela estrada e aparece tracejado.`);
+  } else toast(`O GPS ficou ${min} min sem registrar (app fora da tela). O trecho foi estimado em linha reta (${num(kmProv, 1)} km); com internet, prefira deixar o app na tela.`);
+  if (GRV.t === t){ desenharTrajetos(); salvarGravacao(true); atualizarGravacaoUI(true); }
+}
+/* trechos de um trajeto: gravados pelo GPS (linha cheia) e estimados (tracejado) */
+function trechosTrj(t){
+  const lac = t.lac || [], est = (p, q) => lac.some(([ta, tb]) => ta <= p[2] && q[2] <= tb), out = []; let cur = null;
+  for (let i = 1; i < t.pts.length; i++){ const p = t.pts[i - 1], q = t.pts[i], e = est(p, q);
+    if (!cur || cur.e !== e){ cur = {e, pts:[[p[0], p[1]]]}; out.push(cur); } cur.pts.push([q[0], q[1]]); }
+  return out;
+}
 async function carregarTrajetos(){
   let todos = []; try { todos = await TRJDB.todos(); } catch(e){}
   GRV.lista = todos.filter(t => t && !t.excluido && t.pid === PJ_ID && (t.pts || []).length > 1).sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''));
@@ -7867,10 +7888,15 @@ function desenharTrajetos(){
   GRV.camada.clearLayers(); GRV.linha = null;
   if (GRV.mostrar) GRV.lista.forEach(t => {
     if (GRV.t && t.id === GRV.t.id) return;
-    const ln = L.polyline(t.pts.map(p => [p[0], p[1]]), {color:COR_TRJ, weight:4, opacity:.85}).addTo(GRV.camada);
-    ln.bindPopup(() => `<div class="pop"><h3>Rota percorrida</h3><p class="sub">${esc(fmtDataHora(t.inicio))} até ${esc(fmtHoraISO(t.fim))}</p><p><b>${num(t.km, 1)} km</b> · ${fmtDur(t.seg)} gravando${t.nome ? ` · ${esc(t.nome)}` : ''}${t.etapa && etapaPorId(t.etapa) ? `<br>${esc(etapaPorId(t.etapa).nome)}` : ''}</p></div>`);
+    const pop = () => () => `<div class="pop"><h3>Rota percorrida</h3><p class="sub">${esc(fmtDataHora(t.inicio))} até ${esc(fmtHoraISO(t.fim))}</p><p><b>${num(t.km, 1)} km</b> · ${fmtDur(t.seg)} gravando${t.nome ? ` · ${esc(t.nome)}` : ''}${t.etapa && etapaPorId(t.etapa) ? `<br>${esc(etapaPorId(t.etapa).nome)}` : ''}${(t.lac || []).length ? '<br><small>Tracejado: trecho sem GPS, estimado pela estrada.</small>' : ''}${t.importado ? '<br><small>Importado de arquivo GPX.</small>' : ''}</p></div>`;
+    trechosTrj(t).forEach(g => L.polyline(g.pts, {color:COR_TRJ, weight:4, opacity:.85, dashArray: g.e ? '6 7' : null}).addTo(GRV.camada).bindPopup(pop));
   });
-  if (GRV.t){ GRV.linha = L.polyline(GRV.t.pts.map(p => [p[0], p[1]]), {color:COR_TRJ, weight:5, opacity:.95, dashArray:'1 0'}).addTo(GRV.camada); }
+  if (GRV.t){ trechosTrj(GRV.t).forEach(g => { if (g.e) L.polyline(g.pts, {color:COR_TRJ, weight:5, opacity:.95, dashArray:'6 7'}).addTo(GRV.camada); });
+    const ult = trechosTrj(GRV.t).filter(g => !g.e).pop(), ini = GRV.t.pts.length === 1 ? [[GRV.t.pts[0][0], GRV.t.pts[0][1]]] : [];
+    /* a linha "viva" continua do último ponto: os trechos cheios anteriores entram como linhas fixas */
+    trechosTrj(GRV.t).filter(g => !g.e && g !== ult).forEach(g => L.polyline(g.pts, {color:COR_TRJ, weight:5, opacity:.95}).addTo(GRV.camada));
+    const ultimoE = trechosTrj(GRV.t).slice(-1)[0];
+    GRV.linha = L.polyline(ultimoE && !ultimoE.e ? ultimoE.pts : (GRV.t.pts.length ? [[GRV.t.pts.at(-1)[0], GRV.t.pts.at(-1)[1]]] : ini), {color:COR_TRJ, weight:5, opacity:.95}).addTo(GRV.camada); }
 }
 function infoGravacao(){ const t = GRV.t; return t ? `${num(t.km, t.km < 10 ? 2 : 1)} km · ${fmtDur(t.seg + (GRV.pausa || !t.retomado ? 0 : (Date.now() - t.retomado) / 1000))}` : ''; }
 async function salvarGravacao(forcar){
@@ -7911,8 +7937,10 @@ window.__gpsPonto = p => {
   if (u){ const d = kmTrecho(u, q), dt = Math.max(1, q[2] - u[2]);
     if (d < .012) return;                                   // menos de 12 m: parado
     if (d / (dt / 3600) > 180) return;                      // salto impossível (> 180 km/h)
-    t.km += d; }
-  t.pts.push(q);
+    /* o app ficou sem GPS (tela apagada, Google Maps aberto…): o trecho que faltou é traçado pela estrada */
+    if (dt > 60 && d > .25){ t.lac = t.lac || []; t.lac.push([u[2], q[2]]); t.km += d * 1.3; t.pts.push(q); desenharTrajetos(); preencherLacuna(t, u, q, d * 1.3, dt); salvarGravacao(true); atualizarGravacaoUI(true); return; }
+    else { t.km += d; t.pts.push(q); } }
+  else t.pts.push(q);
   if (GRV.linha) GRV.linha.addLatLng([q[0], q[1]]); else desenharTrajetos();
   /* trajetos muito longos são divididos para caber na nuvem */
   if (t.pts.length >= 40000){ encerrarGravacao().then(iniciarGravacao); return; }
@@ -8061,8 +8089,8 @@ function htmlRegistros(){
     <section class="rg-sec"><div class="rg-t"><h3>Rotas percorridas</h3><label class="rg-chk"><input type="checkbox" data-rg="mostrar" ${GRV.mostrar ? 'checked' : ''}> no mapa</label></div>
       ${GRV.lista.length ? `<ul class="rg-trj">${GRV.lista.map(t => `<li><div><b>${esc(fmtDataHora(t.inicio))}–${esc(fmtHoraISO(t.fim))}</b><small>${num(t.km, 1)} km · ${fmtDur(t.seg)}${t.etapa && etapaPorId(t.etapa) ? ` · ${esc(etapaPorId(t.etapa).nome)}` : ''}${t.nome ? ` · ${esc(t.nome)}` : ''}</small></div>
           <div class="rg-bt"><button type="button" class="btn" data-rg="ver" data-id="${t.id}">Ver</button><button type="button" class="btn" data-rg="gpx" data-id="${t.id}">GPX</button><button type="button" class="btn qd perigo" data-rg="excluir" data-id="${t.id}" aria-label="Excluir rota">${svgI('lixo')}</button></div></li>`).join('')}</ul>
-        <div class="rg-baixar"><button type="button" class="btn" data-rg="todas-gpx">${svgI('baixar')}<span>Todas (GPX)</span></button><button type="button" class="btn" data-rg="todas-kml">${svgI('baixar')}<span>Todas (KML, Google Earth)</span></button></div>`
-        : `<p class="vazio">Nenhuma rota gravada ainda. Em "Em campo", toque em <b>Gravar rota</b> ao sair: o caminho feito, os km e o tempo ficam registrados ${EM_NUVEM ? 'no app e na nuvem da equipe' : 'neste aparelho'}.</p>`}</section>
+        <div class="rg-baixar"><button type="button" class="btn" data-rg="importar">${svgI('baixar')}<span>Importar rota (GPX)</span></button><button type="button" class="btn" data-rg="todas-gpx">${svgI('baixar')}<span>Todas (GPX)</span></button><button type="button" class="btn" data-rg="todas-kml">${svgI('baixar')}<span>Todas (KML, Google Earth)</span></button></div>`
+        : `<div class="rg-baixar"><button type="button" class="btn" data-rg="importar">${svgI('baixar')}<span>Importar rota (GPX)</span></button></div><p class="vazio">Nenhuma rota gravada ainda. Em "Em campo", toque em <b>Gravar rota</b> ao sair: o caminho feito, os km e o tempo ficam registrados ${EM_NUVEM ? 'no app e na nuvem da equipe' : 'neste aparelho'}. Para gravar com a tela apagada, use um app de GPS em segundo plano (ex.: GPSLogger) e importe o arquivo GPX aqui.</p>`}</section>
     <section class="rg-sec"><div class="rg-t"><h3>Visitas</h3></div>
       ${visitas.length ? `<ul class="rg-vis">${visitas.slice(-30).reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-rg="est" data-id="${s.id}"><b>${esc(EST[s.id].nome)}</b> ${tipoBadge(EST[s.id])}<small>${esc(s.feito)} · ${esc(e.nome)}${(s.fotos || []).length ? ` · ${s.fotos.length} foto(s)` : ''}${s.relato ? ' · com anotação' : ''}</small></button></li>`).join('')}</ul>` : '<p class="vazio">Nenhuma visita marcada ainda.</p>'}</section>
     <section class="rg-sec"><div class="rg-t"><h3>Fotos</h3>${fotos.length ? '<button type="button" class="btn" data-rg="zip">Baixar todas (ZIP)</button>' : ''}</div>
@@ -8139,6 +8167,7 @@ telaCorpo.addEventListener('click', ev => {
   const rg = b.dataset.rg;
   if (rg === 'ver'){ const t = GRV.lista.find(x => x.id === id); if (t){ if (!GRV.mostrar){ GRV.mostrar = true; desenharTrajetos(); } if (mobile()) irAba('mapa'); map.fitBounds(L.latLngBounds(t.pts.map(p => [p[0], p[1]])), {padding:[30, 30]}); } }
   else if (rg === 'gpx') baixarTrajetos('gpx', id);
+  else if (rg === 'importar') entradaGPX.click();
   else if (rg === 'excluir') excluirTrajeto(id);
   else if (rg === 'todas-gpx') baixarTrajetos('gpx');
   else if (rg === 'todas-kml') baixarTrajetos('kml');
@@ -8200,6 +8229,33 @@ window.__mapasN = () => new Promise(ok => {
   const sw = navigator.serviceWorker && navigator.serviceWorker.controller; if (!sw) return ok(0);
   const ch = new MessageChannel(); ch.port1.onmessage = ev => ok((ev.data && ev.data.n) || 0); sw.postMessage({tipo:'mapas-tamanho'}, [ch.port2]); setTimeout(() => ok(0), 3000);
 });
+
+/* importar trajetos de arquivos GPX (apps de GPS que gravam em segundo plano, como o GPSLogger) */
+const entradaGPX = document.createElement('input'); entradaGPX.type = 'file'; entradaGPX.accept = '.gpx,.xml,application/gpx+xml,application/xml,text/xml'; entradaGPX.multiple = true; entradaGPX.hidden = true; entradaGPX.dataset.volatil = '';
+document.body.appendChild(entradaGPX);
+entradaGPX.onchange = async () => {
+  const arqs = [...entradaGPX.files]; entradaGPX.value = ''; let n = 0, kmT = 0;
+  for (const f of arqs){
+    try {
+      const xml = new DOMParser().parseFromString(await f.text(), 'application/xml');
+      for (const trk of [...xml.getElementsByTagName('trk'), ...(xml.getElementsByTagName('trk').length ? [] : [xml.documentElement])]){
+        const nos = [...trk.getElementsByTagName('trkpt')].concat(xml.getElementsByTagName('trk').length ? [] : [...xml.getElementsByTagName('rtept')]);
+        const brutos = nos.map(p => ({la: +p.getAttribute('lat'), lo: +p.getAttribute('lon'), t: Date.parse((p.getElementsByTagName('time')[0] || {}).textContent || '')})).filter(p => isFinite(p.la) && isFinite(p.lo));
+        if (brutos.length < 2) continue;
+        const t0 = isFinite(brutos[0].t) ? brutos[0].t : Date.now(), pts = []; let km = 0;
+        brutos.forEach((p, i) => { const q = [+p.la.toFixed(6), +p.lo.toFixed(6), isFinite(p.t) ? Math.round((p.t - t0) / 1000) : i]; const u = pts[pts.length - 1];
+          if (u){ const d = kmTrecho(u, q); if (d < .005) return; km += d; } pts.push(q); });
+        const tf = isFinite(brutos.at(-1).t) ? brutos.at(-1).t : t0, e = etapaCampo();
+        const t = {id:'t' + Date.now().toString(36) + uid().slice(0, 4), pid:PJ_ID, etapa: e ? e.id : null, inicio:new Date(t0).toISOString(), fim:new Date(tf).toISOString(), pts, km,
+          seg: Math.max(0, (tf - t0) / 1000), por:(NUV.email || ''), nome:(NUV.nome || ''), importado:true, mod:Date.now()};
+        await TRJDB.put(t.id, t); n++; kmT += km;
+      }
+    } catch(err){ console.error(err); }
+  }
+  if (!n){ toast('Nenhum trajeto encontrado no arquivo. Use um arquivo GPX com trilha (trkpt).'); return; }
+  NUV.sujo(); await carregarTrajetos();
+  toast(`${n} ${n === 1 ? 'rota importada' : 'rotas importadas'} (${num(kmT, 1)} km).${EM_NUVEM ? ' Elas vão para a nuvem da equipe.' : ''}`);
+};
 </script>
 </body>
 </html>
