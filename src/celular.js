@@ -243,13 +243,14 @@ if (CELULAR){
     const hojeD = new Date().toDateString(), deHoje = GRV.lista.filter(t => new Date(t.inicio).toDateString() === hojeD);
     const v = GPS.pos && GPS.pos.coords.speed != null && GPS.pos.coords.speed > .5 ? Math.round(GPS.pos.coords.speed * 3.6) : 0;
     let h = cab('Gravar rota', 'O caminho feito em campo, pelo GPS');
-    if (!GRV.t) h += `<div class="r-ini"><button type="button" class="r-bt" data-c="gravar" aria-label="Iniciar gravação"><i></i></button><b>Iniciar gravação</b><small>Toque ao sair. Deixe o app aberto: a tela fica acesa sozinha.</small></div>`;
+    if (!GRV.t) h += `<div class="r-ini"><button type="button" class="r-bt" data-c="gravar" aria-label="Iniciar gravação"><i></i></button><b>Iniciar gravação</b><small>${NATIVO ? 'Toque ao sair. Pode apagar a tela e guardar o celular: grava mesmo sem internet.' : 'Toque ao sair. Deixe o app aberto: a tela fica acesa sozinha.'}</small></div>`;
     else { const n = numerosGrav();
       h += `<div class="r-viva${GRV.pausa ? ' pausa' : ''}"><p class="r-st"><i class="rec"></i>${GRV.pausa ? 'Pausada' : 'Gravando'}${GPS.pos ? ` · GPS ±${Math.round(GPS.pos.coords.accuracy || 0)} m` : ' · procurando o GPS…'}</p>
         <div class="r-nums"><div><b data-r="km">${num(n.km, n.km < 100 ? 1 : 0)}</b><span>km</span></div><div><b data-r="t">${fmtDur(n.seg)}</b><span>tempo</span></div><div><b data-r="v">${v}</b><span>km/h</span></div></div>
         <div class="r-bts"><button type="button" class="c-bt" data-c="${GRV.pausa ? 'continuar' : 'pausar'}">${GRV.pausa ? 'Continuar' : 'Pausar'}</button><button type="button" class="c-bt perigo" data-c="encerrar">Encerrar e salvar</button></div></div>`; }
     h += `<p class="c-rot">Gravadas hoje</p>` + (deHoje.length ? `<ul class="c-trj">${deHoje.map(linhaTrj).join('')}</ul>` : `<p class="c-vazio mini">Nenhuma ainda.</p>`);
-    h += `<details class="c-gm-leg r-como"><summary>Limites</summary><p>Grava com o app aberto (a tela fica acesa). Se a tela apagar ou você abrir o Google Maps, o trecho que faltou é traçado pela estrada e fica tracejado.</p></details>`;
+    h += NATIVO ? `<p class="c-dica">Grava em segundo plano: aparece uma notificação "Gravando a rota" enquanto estiver ligado.</p>`
+      : `<details class="c-gm-leg r-como"><summary>Limites</summary><p>Grava com o app aberto (a tela fica acesa). Se a tela apagar ou você abrir o Google Maps, o trecho que faltou é traçado pela estrada e fica tracejado. No aplicativo Android, grava com a tela apagada.</p></details>`;
     return h;
   }
   /* ================= REGISTROS ================= */

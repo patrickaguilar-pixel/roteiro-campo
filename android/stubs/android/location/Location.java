@@ -1,0 +1,1 @@
+package android.location; public class Location { public double getLatitude(){ return 0; } public double getLongitude(){ return 0; } public long getTime(){ return 0; } public float getAccuracy(){ return 0; } public boolean hasSpeed(){ return false; } public float getSpeed(){ return 0; } }

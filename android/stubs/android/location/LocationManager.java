@@ -1,0 +1,1 @@
+package android.location; public class LocationManager { public void requestLocationUpdates(String p, long t, float d, LocationListener l, android.os.Looper lp){} public void removeUpdates(LocationListener l){} }

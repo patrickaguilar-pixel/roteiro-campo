@@ -4849,6 +4849,8 @@ async function comecar(){
   };
   const prov = new fb.auth.GoogleAuthProvider(); prov.setCustomParameters({prompt:'select_account'});
   auth.getRedirectResult().catch(() => {});
+  /* volta do login feito no navegador (aplicativo Android): entra com o token do Google */
+  window.appLoginToken = tk => { auth.signInWithCredential(fb.auth.GoogleAuthProvider.credential(tk)).catch(e => { const el = document.getElementById('enErro'); if (el) el.textContent = 'Não foi possível entrar: ' + (e.message || e.code); }); return true; };
   let primeiro = true;
   auth.onAuthStateChanged(async u => {
     if (!u){
@@ -4857,6 +4859,12 @@ async function comecar(){
         <button type="button" class="en-bt" data-en="google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Entrar com Google</button><p class="en-msg erro" id="enErro"></p>`);
       t.querySelector('[data-en=google]').onclick = async () => {
         t.querySelector('#enErro').textContent = '';
+        /* no aplicativo Android o Google não deixa entrar por dentro do app: o login abre no navegador e volta */
+        if (window.AndroidApp && typeof window.AndroidApp.loginGoogle === 'function'){
+          window.AndroidApp.loginGoogle();
+          t.querySelector('#enErro').innerHTML = '<span style="color:#17231F">Abrimos o navegador. Entre com o Google e toque em <b>Voltar ao app</b>.</span>';
+          return;
+        }
         try { await auth.signInWithPopup(prov); }
         catch(e){ if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')){ try { await auth.signInWithRedirect(prov); } catch(_){} }
           else if (e && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') t.querySelector('#enErro').textContent = 'Não foi possível entrar: ' + (e.message || e.code); }
@@ -8318,6 +8326,21 @@ async function salvarGravacao(forcar){
   const seg = t.seg + (GRV.pausa || !t.retomado ? 0 : (agora - t.retomado) / 1000);
   try { await TRJDB.put(t.id, {...t, seg, retomado:null, mod:agora}); } catch(e){}
 }
+/* No aplicativo Android, a gravação é feita pelo próprio celular (serviço em segundo plano): continua com a
+   tela apagada e sem internet. A página só busca as posições gravadas. */
+const NATIVO = (() => { try { return !!(window.AndroidApp && typeof window.AndroidApp.gpsIniciar === 'function'); } catch(e){ return false; } })();
+function puxarNativo(){
+  const t = GRV.t; if (!NATIVO || !t) return 0;
+  let lst = []; try { lst = JSON.parse(window.AndroidApp.gpsPontos(t.nat || 0)) || []; } catch(e){ return 0; }
+  lst.forEach(p => addPonto(p[0], p[1], p[2], p[3]));
+  t.nat = (t.nat || 0) + lst.length;
+  if (lst.length){ salvarGravacao(false); atualizarGravacaoUI(true); }
+  return lst.length;
+}
+if (NATIVO){
+  setInterval(() => { if (GRV.t && document.visibilityState === 'visible') puxarNativo(); }, 4000);
+  window.appVolta = () => { if (GRV.t) puxarNativo(); };
+}
 function iniciarGravacao(){
   if (GRV.t){ if (GRV.pausa) continuarGravacao(); return; }
   const e = etapaCampo();
@@ -8325,14 +8348,16 @@ function iniciarGravacao(){
     por:(NUV.email || ''), nome:(NUV.nome || ''), gravando:true, retomado:Date.now(), mod:Date.now()};
   GRV.pausa = false;
   try { localStorage.setItem('rc-gravando', GRV.t.id); } catch(e2){}
+  if (NATIVO){ GRV.t.nat = 0; try { window.AndroidApp.gpsIniciar(true); } catch(e3){} }
   if (!GPS.on) gpsLigar();
   salvarGravacao(true); atualizarGravacaoUI();
-  toast('Gravando a rota. Deixe o app aberto com a tela ligada (pode ficar no suporte do carro, carregando).');
+  toast(NATIVO ? 'Gravando a rota. Pode apagar a tela e guardar o celular: a gravação continua, mesmo sem internet.' : 'Gravando a rota. Deixe o app aberto com a tela ligada (pode ficar no suporte do carro, carregando).');
 }
-function pausarGravacao(){ const t = GRV.t; if (!t || GRV.pausa) return; t.seg += (Date.now() - t.retomado) / 1000; t.retomado = null; GRV.pausa = true; salvarGravacao(true); atualizarGravacaoUI(); }
-function continuarGravacao(){ const t = GRV.t; if (!t) return; GRV.pausa = false; t.retomado = Date.now(); if (!GPS.on) gpsLigar(); atualizarGravacaoUI(); }
+function pausarGravacao(){ const t = GRV.t; if (!t || GRV.pausa) return; if (NATIVO){ puxarNativo(); try { window.AndroidApp.gpsParar(); } catch(e){} } t.seg += (Date.now() - t.retomado) / 1000; t.retomado = null; GRV.pausa = true; salvarGravacao(true); atualizarGravacaoUI(); }
+function continuarGravacao(){ const t = GRV.t; if (!t) return; if (NATIVO){ try { window.AndroidApp.gpsIniciar(false); } catch(e){} } GRV.pausa = false; t.retomado = Date.now(); if (!GPS.on) gpsLigar(); atualizarGravacaoUI(); }
 async function encerrarGravacao(){
   const t = GRV.t; if (!t) return;
+  if (NATIVO){ puxarNativo(); try { window.AndroidApp.gpsParar(); window.AndroidApp.gpsLimpar(); } catch(e){} }
   if (!GRV.pausa) t.seg += (Date.now() - t.retomado) / 1000;
   t.fim = new Date().toISOString(); t.gravando = false; t.retomado = null; t.mod = Date.now();
   GRV.t = null; GRV.pausa = false;
@@ -8341,10 +8366,11 @@ async function encerrarGravacao(){
   else { try { await TRJDB.put(t.id, t); } catch(e){} toast(`Rota gravada: ${num(t.km, 1)} km em ${fmtDur(t.seg)}. ${EM_NUVEM ? 'Ela vai para a nuvem da equipe.' : 'Guardada neste aparelho.'}`); NUV.sujo(); }
   atualizarGravacaoUI(); carregarTrajetos();
 }
-window.__gpsPonto = p => {
-  const t = GRV.t; if (!t || GRV.pausa) return;
-  const acc = p.coords.accuracy || 999; if (acc > 60) return;
-  const q = [+p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6), Math.round((Date.now() - Date.parse(t.inicio)) / 1000)];
+window.__gpsPonto = p => { if (NATIVO) return; addPonto(p.coords.latitude, p.coords.longitude, Date.now(), p.coords.accuracy || 999); };
+function addPonto(lat, lon, ms, acc){
+  const t = GRV.t; if (!t || (GRV.pausa && !NATIVO)) return;
+  if (acc > 60) return;
+  const q = [+(+lat).toFixed(6), +(+lon).toFixed(6), Math.round((ms - Date.parse(t.inicio)) / 1000)];
   const u = t.pts[t.pts.length - 1];
   if (u){ const d = kmTrecho(u, q), dt = Math.max(1, q[2] - u[2]);
     if (d < .012) return;                                   // menos de 12 m: parado
@@ -8355,9 +8381,9 @@ window.__gpsPonto = p => {
   else t.pts.push(q);
   if (GRV.linha) GRV.linha.addLatLng([q[0], q[1]]); else desenharTrajetos();
   /* trajetos muito longos são divididos para caber na nuvem */
-  if (t.pts.length >= 40000){ encerrarGravacao().then(iniciarGravacao); return; }
+  if (t.pts.length >= 40000 && !NATIVO){ encerrarGravacao().then(iniciarGravacao); return; }
   salvarGravacao(false); atualizarGravacaoUI(true);
-};
+}
 function atualizarGravacaoUI(soTexto){
   navEl.querySelector('.nav-rec').hidden = !GRV.t;
   navEl.querySelector('.nav-rec').classList.toggle('pausa', GRV.pausa);
@@ -8371,14 +8397,15 @@ function atualizarGravacaoUI(soTexto){
 setInterval(() => { if (GRV.t && !GRV.pausa) { document.querySelectorAll('[data-grv-info]').forEach(el => el.textContent = infoGravacao()); salvarGravacao(false); } }, 15000);
 /* o GPS desligado pausa a gravação */
 const _gpsDesligar = gpsDesligar;
-gpsDesligar = () => { if (GRV.t && !GRV.pausa){ pausarGravacao(); toast('GPS desligado: a gravação da rota foi pausada.'); } _gpsDesligar(); if (!telaEl.hidden) desenharTela(); };
+gpsDesligar = () => { if (GRV.t && !GRV.pausa && !NATIVO){ pausarGravacao(); toast('GPS desligado: a gravação da rota foi pausada.'); } _gpsDesligar(); if (!telaEl.hidden) desenharTela(); };
 const _gpsLigar = gpsLigar;
 gpsLigar = () => { _gpsLigar(); if (!telaEl.hidden) desenharTela(); };
 /* gravação interrompida (app fechado ou celular reiniciado): retoma como pausada */
 (async () => {
   let id = null; try { id = localStorage.getItem('rc-gravando'); } catch(e){}
   if (id){ const t = await TRJDB.get(id).catch(() => null);
-    if (t && t.gravando && t.pid === PJ_ID){ GRV.t = {...t, retomado:null}; GRV.pausa = true; atualizarGravacaoUI(); toast('Havia uma gravação de rota em andamento. Ela está pausada: abra "Em campo" para continuar ou encerrar.'); }
+    if (t && t.gravando && t.pid === PJ_ID && NATIVO && window.AndroidApp.gpsAtivo()){ GRV.t = {...t, retomado:t.mod || Date.now()}; GRV.pausa = false; puxarNativo(); atualizarGravacaoUI(); }
+    else if (t && t.gravando && t.pid === PJ_ID){ GRV.t = {...t, retomado:null}; GRV.pausa = true; atualizarGravacaoUI(); toast('Havia uma gravação de rota em andamento. Ela está pausada: toque em Gravar para continuar ou encerrar.'); }
     else try { localStorage.removeItem('rc-gravando'); } catch(e){} }
   carregarTrajetos();
 })();
@@ -8911,13 +8938,14 @@ if (CELULAR){
     const hojeD = new Date().toDateString(), deHoje = GRV.lista.filter(t => new Date(t.inicio).toDateString() === hojeD);
     const v = GPS.pos && GPS.pos.coords.speed != null && GPS.pos.coords.speed > .5 ? Math.round(GPS.pos.coords.speed * 3.6) : 0;
     let h = cab('Gravar rota', 'O caminho feito em campo, pelo GPS');
-    if (!GRV.t) h += `<div class="r-ini"><button type="button" class="r-bt" data-c="gravar" aria-label="Iniciar gravação"><i></i></button><b>Iniciar gravação</b><small>Toque ao sair. Deixe o app aberto: a tela fica acesa sozinha.</small></div>`;
+    if (!GRV.t) h += `<div class="r-ini"><button type="button" class="r-bt" data-c="gravar" aria-label="Iniciar gravação"><i></i></button><b>Iniciar gravação</b><small>${NATIVO ? 'Toque ao sair. Pode apagar a tela e guardar o celular: grava mesmo sem internet.' : 'Toque ao sair. Deixe o app aberto: a tela fica acesa sozinha.'}</small></div>`;
     else { const n = numerosGrav();
       h += `<div class="r-viva${GRV.pausa ? ' pausa' : ''}"><p class="r-st"><i class="rec"></i>${GRV.pausa ? 'Pausada' : 'Gravando'}${GPS.pos ? ` · GPS ±${Math.round(GPS.pos.coords.accuracy || 0)} m` : ' · procurando o GPS…'}</p>
         <div class="r-nums"><div><b data-r="km">${num(n.km, n.km < 100 ? 1 : 0)}</b><span>km</span></div><div><b data-r="t">${fmtDur(n.seg)}</b><span>tempo</span></div><div><b data-r="v">${v}</b><span>km/h</span></div></div>
         <div class="r-bts"><button type="button" class="c-bt" data-c="${GRV.pausa ? 'continuar' : 'pausar'}">${GRV.pausa ? 'Continuar' : 'Pausar'}</button><button type="button" class="c-bt perigo" data-c="encerrar">Encerrar e salvar</button></div></div>`; }
     h += `<p class="c-rot">Gravadas hoje</p>` + (deHoje.length ? `<ul class="c-trj">${deHoje.map(linhaTrj).join('')}</ul>` : `<p class="c-vazio mini">Nenhuma ainda.</p>`);
-    h += `<details class="c-gm-leg r-como"><summary>Limites</summary><p>Grava com o app aberto (a tela fica acesa). Se a tela apagar ou você abrir o Google Maps, o trecho que faltou é traçado pela estrada e fica tracejado.</p></details>`;
+    h += NATIVO ? `<p class="c-dica">Grava em segundo plano: aparece uma notificação "Gravando a rota" enquanto estiver ligado.</p>`
+      : `<details class="c-gm-leg r-como"><summary>Limites</summary><p>Grava com o app aberto (a tela fica acesa). Se a tela apagar ou você abrir o Google Maps, o trecho que faltou é traçado pela estrada e fica tracejado. No aplicativo Android, grava com a tela apagada.</p></details>`;
     return h;
   }
   /* ================= REGISTROS ================= */

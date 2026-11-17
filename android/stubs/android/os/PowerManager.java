@@ -1,0 +1,1 @@
+package android.os; public final class PowerManager { public WakeLock newWakeLock(int f, String t){ return null; } public boolean isIgnoringBatteryOptimizations(String p){ return false; } public final class WakeLock { public void acquire(long t){} public void release(){} public boolean isHeld(){ return false; } } }

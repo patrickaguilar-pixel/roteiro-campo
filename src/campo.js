@@ -169,6 +169,21 @@ async function salvarGravacao(forcar){
   const seg = t.seg + (GRV.pausa || !t.retomado ? 0 : (agora - t.retomado) / 1000);
   try { await TRJDB.put(t.id, {...t, seg, retomado:null, mod:agora}); } catch(e){}
 }
+/* No aplicativo Android, a gravação é feita pelo próprio celular (serviço em segundo plano): continua com a
+   tela apagada e sem internet. A página só busca as posições gravadas. */
+const NATIVO = (() => { try { return !!(window.AndroidApp && typeof window.AndroidApp.gpsIniciar === 'function'); } catch(e){ return false; } })();
+function puxarNativo(){
+  const t = GRV.t; if (!NATIVO || !t) return 0;
+  let lst = []; try { lst = JSON.parse(window.AndroidApp.gpsPontos(t.nat || 0)) || []; } catch(e){ return 0; }
+  lst.forEach(p => addPonto(p[0], p[1], p[2], p[3]));
+  t.nat = (t.nat || 0) + lst.length;
+  if (lst.length){ salvarGravacao(false); atualizarGravacaoUI(true); }
+  return lst.length;
+}
+if (NATIVO){
+  setInterval(() => { if (GRV.t && document.visibilityState === 'visible') puxarNativo(); }, 4000);
+  window.appVolta = () => { if (GRV.t) puxarNativo(); };
+}
 function iniciarGravacao(){
   if (GRV.t){ if (GRV.pausa) continuarGravacao(); return; }
   const e = etapaCampo();
@@ -176,14 +191,16 @@ function iniciarGravacao(){
     por:(NUV.email || ''), nome:(NUV.nome || ''), gravando:true, retomado:Date.now(), mod:Date.now()};
   GRV.pausa = false;
   try { localStorage.setItem('rc-gravando', GRV.t.id); } catch(e2){}
+  if (NATIVO){ GRV.t.nat = 0; try { window.AndroidApp.gpsIniciar(true); } catch(e3){} }
   if (!GPS.on) gpsLigar();
   salvarGravacao(true); atualizarGravacaoUI();
-  toast('Gravando a rota. Deixe o app aberto com a tela ligada (pode ficar no suporte do carro, carregando).');
+  toast(NATIVO ? 'Gravando a rota. Pode apagar a tela e guardar o celular: a gravação continua, mesmo sem internet.' : 'Gravando a rota. Deixe o app aberto com a tela ligada (pode ficar no suporte do carro, carregando).');
 }
-function pausarGravacao(){ const t = GRV.t; if (!t || GRV.pausa) return; t.seg += (Date.now() - t.retomado) / 1000; t.retomado = null; GRV.pausa = true; salvarGravacao(true); atualizarGravacaoUI(); }
-function continuarGravacao(){ const t = GRV.t; if (!t) return; GRV.pausa = false; t.retomado = Date.now(); if (!GPS.on) gpsLigar(); atualizarGravacaoUI(); }
+function pausarGravacao(){ const t = GRV.t; if (!t || GRV.pausa) return; if (NATIVO){ puxarNativo(); try { window.AndroidApp.gpsParar(); } catch(e){} } t.seg += (Date.now() - t.retomado) / 1000; t.retomado = null; GRV.pausa = true; salvarGravacao(true); atualizarGravacaoUI(); }
+function continuarGravacao(){ const t = GRV.t; if (!t) return; if (NATIVO){ try { window.AndroidApp.gpsIniciar(false); } catch(e){} } GRV.pausa = false; t.retomado = Date.now(); if (!GPS.on) gpsLigar(); atualizarGravacaoUI(); }
 async function encerrarGravacao(){
   const t = GRV.t; if (!t) return;
+  if (NATIVO){ puxarNativo(); try { window.AndroidApp.gpsParar(); window.AndroidApp.gpsLimpar(); } catch(e){} }
   if (!GRV.pausa) t.seg += (Date.now() - t.retomado) / 1000;
   t.fim = new Date().toISOString(); t.gravando = false; t.retomado = null; t.mod = Date.now();
   GRV.t = null; GRV.pausa = false;
@@ -192,10 +209,11 @@ async function encerrarGravacao(){
   else { try { await TRJDB.put(t.id, t); } catch(e){} toast(`Rota gravada: ${num(t.km, 1)} km em ${fmtDur(t.seg)}. ${EM_NUVEM ? 'Ela vai para a nuvem da equipe.' : 'Guardada neste aparelho.'}`); NUV.sujo(); }
   atualizarGravacaoUI(); carregarTrajetos();
 }
-window.__gpsPonto = p => {
-  const t = GRV.t; if (!t || GRV.pausa) return;
-  const acc = p.coords.accuracy || 999; if (acc > 60) return;
-  const q = [+p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6), Math.round((Date.now() - Date.parse(t.inicio)) / 1000)];
+window.__gpsPonto = p => { if (NATIVO) return; addPonto(p.coords.latitude, p.coords.longitude, Date.now(), p.coords.accuracy || 999); };
+function addPonto(lat, lon, ms, acc){
+  const t = GRV.t; if (!t || (GRV.pausa && !NATIVO)) return;
+  if (acc > 60) return;
+  const q = [+(+lat).toFixed(6), +(+lon).toFixed(6), Math.round((ms - Date.parse(t.inicio)) / 1000)];
   const u = t.pts[t.pts.length - 1];
   if (u){ const d = kmTrecho(u, q), dt = Math.max(1, q[2] - u[2]);
     if (d < .012) return;                                   // menos de 12 m: parado
@@ -206,9 +224,9 @@ window.__gpsPonto = p => {
   else t.pts.push(q);
   if (GRV.linha) GRV.linha.addLatLng([q[0], q[1]]); else desenharTrajetos();
   /* trajetos muito longos são divididos para caber na nuvem */
-  if (t.pts.length >= 40000){ encerrarGravacao().then(iniciarGravacao); return; }
+  if (t.pts.length >= 40000 && !NATIVO){ encerrarGravacao().then(iniciarGravacao); return; }
   salvarGravacao(false); atualizarGravacaoUI(true);
-};
+}
 function atualizarGravacaoUI(soTexto){
   navEl.querySelector('.nav-rec').hidden = !GRV.t;
   navEl.querySelector('.nav-rec').classList.toggle('pausa', GRV.pausa);
@@ -222,14 +240,15 @@ function atualizarGravacaoUI(soTexto){
 setInterval(() => { if (GRV.t && !GRV.pausa) { document.querySelectorAll('[data-grv-info]').forEach(el => el.textContent = infoGravacao()); salvarGravacao(false); } }, 15000);
 /* o GPS desligado pausa a gravação */
 const _gpsDesligar = gpsDesligar;
-gpsDesligar = () => { if (GRV.t && !GRV.pausa){ pausarGravacao(); toast('GPS desligado: a gravação da rota foi pausada.'); } _gpsDesligar(); if (!telaEl.hidden) desenharTela(); };
+gpsDesligar = () => { if (GRV.t && !GRV.pausa && !NATIVO){ pausarGravacao(); toast('GPS desligado: a gravação da rota foi pausada.'); } _gpsDesligar(); if (!telaEl.hidden) desenharTela(); };
 const _gpsLigar = gpsLigar;
 gpsLigar = () => { _gpsLigar(); if (!telaEl.hidden) desenharTela(); };
 /* gravação interrompida (app fechado ou celular reiniciado): retoma como pausada */
 (async () => {
   let id = null; try { id = localStorage.getItem('rc-gravando'); } catch(e){}
   if (id){ const t = await TRJDB.get(id).catch(() => null);
-    if (t && t.gravando && t.pid === PJ_ID){ GRV.t = {...t, retomado:null}; GRV.pausa = true; atualizarGravacaoUI(); toast('Havia uma gravação de rota em andamento. Ela está pausada: abra "Em campo" para continuar ou encerrar.'); }
+    if (t && t.gravando && t.pid === PJ_ID && NATIVO && window.AndroidApp.gpsAtivo()){ GRV.t = {...t, retomado:t.mod || Date.now()}; GRV.pausa = false; puxarNativo(); atualizarGravacaoUI(); }
+    else if (t && t.gravando && t.pid === PJ_ID){ GRV.t = {...t, retomado:null}; GRV.pausa = true; atualizarGravacaoUI(); toast('Havia uma gravação de rota em andamento. Ela está pausada: toque em Gravar para continuar ou encerrar.'); }
     else try { localStorage.removeItem('rc-gravando'); } catch(e){} }
   carregarTrajetos();
 })();

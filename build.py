@@ -43,6 +43,8 @@ json.dump({"name":"Roteiro de Campo","short_name":"Roteiro","description":"Rotei
   "icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
            {"src":"icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]},
   open(os.path.join(OUT, 'manifest.webmanifest'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+lg = ler('login-app.html').replace('<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>', f'<script>window.RC_FIREBASE={json.dumps(cfg)};</script>\n<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>', 1)
+open(os.path.join(OUT, 'login-app.html'), 'w', encoding='utf-8').write(lg)
 for f in ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'favicon.png']:
     if os.path.exists(os.path.join(S, 'icones', f)): shutil.copy(os.path.join(S, 'icones', f), OUT)
 print('ok', OUT, len(html), 'bytes', 'firebase' if cfg else 'sem firebase (modo local)')
