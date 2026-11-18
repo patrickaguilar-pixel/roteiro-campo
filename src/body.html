@@ -25,12 +25,11 @@
       <div class="menu" id="menu">
         <button class="btn" id="bMenu" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg><span>Relatórios</span><span class="seta-m">▾</span></button>
         <div class="menu-lista" role="menu">
-          <button data-acao="crono">Relatório completo<small>Resumo geral, cronograma dia a dia, paradas com observações e anotações, hospedagens e gastos. Imprime ou salva em PDF.</small></button>
-          <button data-acao="gastos">Relatório de gastos<small>Todos os gastos lançados, por data, tipo e etapa, com previsto x realizado.</small></button>
+          <button data-acao="crono">Relatório completo<small>Resumo geral, cronograma dia a dia, paradas com observações e anotações e hospedagens. Imprime ou salva em PDF.</small></button>
           <button data-acao="tabela" id="mTabela">Tabela das estações<small>Todas as estações do projeto com etapa, dia, horário e acesso.</small></button>
           <hr>
           <button data-acao="csv">Baixar planilha do roteiro (CSV)</button>
-          <button data-acao="csvApoio">Baixar hospedagens, paradas e gastos (CSV)</button>
+          <button data-acao="csvApoio">Baixar hospedagens e paradas (CSV)</button>
           <button data-acao="kml">Baixar para Google My Maps / Earth (KML)<small>Pontos com o número da parada, separados por dia. Do quadro geral, leva todas as etapas.</small></button>
           <button data-acao="fotos-zip">Baixar fotos (ZIP)<small>Fotos em JPG com GPS gravado (EXIF) e carimbo, planilha fotos.csv e fotos.kml para o Google Earth.</small></button>
           <button data-acao="geojson">Baixar traçado e estações (GeoJSON)</button>
@@ -116,7 +115,7 @@
         </details>
         <details class="caixa" id="apoiosGeralBox">
           <summary>Hospedagens e paradas <small id="apoiosGeralN"></small></summary>
-          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone, gasto…" aria-label="Buscar nas hospedagens e paradas"><div id="apoiosGeral"></div></div>
+          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone…" aria-label="Buscar nas hospedagens e paradas"><div id="apoiosGeral"></div></div>
         </details>
       </section>
 
@@ -131,7 +130,7 @@
         <div id="lista" aria-label="Pontos em ordem de visita"></div>
         <details class="caixa" id="apoiosEtapaBox">
           <summary>Hospedagens e paradas da etapa <small id="apoiosEtapaN"></small></summary>
-          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone, gasto…" aria-label="Buscar nas hospedagens e paradas da etapa"><div id="apoiosEtapa"></div></div>
+          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone…" aria-label="Buscar nas hospedagens e paradas da etapa"><div id="apoiosEtapa"></div></div>
         </details>
         <div style="margin:12px 14px 0"><button class="btn perigo peq" id="bExcluirEtapa">Excluir esta etapa</button> <span class="dica">Os pontos são redistribuídos entre as outras etapas, cada um na etapa onde gera menos desvio.</span></div>
       </section>
@@ -155,10 +154,10 @@
       </div>
       <div class="grid2">
         <label class="f">Endereço / telefone<input id="aContato" maxlength="120"></label>
-        <label class="f" id="aValorLbl">Valor (R$)<input id="aValor" type="number" min="0" step="0.01" placeholder="0,00"></label>
+        <label class="f" id="aValorLbl" hidden>Valor (R$)<input id="aValor" type="number" min="0" step="0.01" placeholder="0,00"></label>
       </div>
       <label class="f">Observações<textarea id="aNota" rows="2" placeholder="Reserva, horário, café incluso, estacionamento…"></textarea></label>
-      <div class="gastos-box"><div class="gastos-top"><b>Gastos realizados</b><span id="aGastosTot" class="dica" style="margin:0"></span><button type="button" class="btn peq" id="aAddGasto">+ Adicionar gasto</button></div><div id="aGastos"></div></div>
+      <div class="gastos-box" hidden><div class="gastos-top"><b>Gastos realizados</b><span id="aGastosTot" class="dica" style="margin:0"></span><button type="button" class="btn peq" id="aAddGasto">+ Adicionar gasto</button></div><div id="aGastos"></div></div>
       <p class="dica" id="aPos"></p>
     </div>
     <div class="dlg-pe">

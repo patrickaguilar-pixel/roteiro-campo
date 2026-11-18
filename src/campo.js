@@ -418,8 +418,7 @@ function htmlCampo(){
   h += `<div class="cp-rapido"><span>Registrar aqui${GPS.pos ? ' (posição do GPS)' : ''}:</span>
       <button type="button" class="btn" data-cp="apoio" data-t="comb">${svgI('posto')}<span>Abastecimento</span></button>
       <button type="button" class="btn" data-cp="apoio" data-t="alim">${svgI('moeda')}<span>Refeição</span></button>
-      <button type="button" class="btn" data-cp="apoio" data-t="hosp">${svgI('cama')}<span>Hospedagem</span></button>
-      <button type="button" class="btn" data-cp="apoio" data-t="outro">${svgI('moeda')}<span>Outro gasto</span></button></div>`;
+      <button type="button" class="btn" data-cp="apoio" data-t="hosp">${svgI('cama')}<span>Hospedagem</span></button></div>`;
   return h;
 }
 function registrarApoioAqui(tipo){
@@ -439,8 +438,7 @@ function htmlRegistros(){
   return `<div class="rg-resumo">
       <div><b>${visitas.length}<small>/${tot}</small></b><span>estações visitadas</span></div>
       <div><b>${num(totTrj.km, totTrj.km < 100 ? 1 : 0)}</b><span>km percorridos (GPS)</span></div>
-      <div><b>${fotos.length}</b><span>fotos</span></div>
-      <div><b>${fmtR(T.gasto)}</b><span>gastos lançados</span></div></div>
+      <div><b>${fotos.length}</b><span>fotos</span></div></div>
     <section class="rg-sec"><div class="rg-t"><h3>Rotas percorridas</h3><label class="rg-chk"><input type="checkbox" data-rg="mostrar" ${GRV.mostrar ? 'checked' : ''}> no mapa</label></div>
       ${GRV.lista.length ? `<ul class="rg-trj">${GRV.lista.map(t => `<li><div><b>${esc(tituloTrj(t))}</b><small>${esc(fmtDataHora(t.inicio))}–${esc(fmtHoraISO(t.fim))} · ${num(t.km, 1)} km · ${fmtDur(t.seg)}${t.etapa && etapaPorId(t.etapa) ? ` · ${esc(etapaPorId(t.etapa).nome)}` : ''}${t.nome ? ` · ${esc(t.nome)}` : ''}</small></div>
           <div class="rg-bt"><button type="button" class="btn" data-rg="ver" data-id="${t.id}">Ver</button><button type="button" class="btn" data-rg="gpx" data-id="${t.id}">GPX</button><button type="button" class="btn" data-rg="nome" data-id="${t.id}">Detalhes</button><button type="button" class="btn qd perigo" data-rg="excluir" data-id="${t.id}" aria-label="Excluir rota">${svgI('lixo')}</button></div></li>`).join('')}</ul>
@@ -450,9 +448,7 @@ function htmlRegistros(){
       ${visitas.length ? `<ul class="rg-vis">${visitas.slice(-30).reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-rg="est" data-id="${s.id}"><b>${esc(EST[s.id].nome)}</b> ${tipoBadge(EST[s.id])}<small>${esc(s.feito)} · ${esc(e.nome)}${(s.fotos || []).length ? ` · ${s.fotos.length} foto(s)` : ''}${s.relato ? ' · com anotação' : ''}</small></button></li>`).join('')}</ul>` : '<p class="vazio">Nenhuma visita marcada ainda.</p>'}</section>
     <section class="rg-sec"><div class="rg-t"><h3>Fotos</h3>${fotos.length ? '<button type="button" class="btn" data-rg="zip">Baixar todas (ZIP)</button>' : ''}</div>
       ${fotos.length ? `<div class="rg-fotos">${fotos.slice(0, 24).map(x => `<button type="button" class="th" data-ver-foto="${x.s.id}|${x.f.id}" title="${esc(EST[x.s.id].nome)}"><img data-foto="${x.f.id}" alt="Foto de ${esc(EST[x.s.id].nome)}"></button>`).join('')}</div>` : '<p class="vazio">As fotos tiradas nas visitas aparecem aqui, com GPS gravado.</p>'}</section>
-    <section class="rg-sec"><div class="rg-t"><h3>Gastos</h3></div>
-      <p class="rg-gastos">Previsto <b>${fmtR(T.prev)}</b> · realizado <b>${fmtR(T.gasto)}</b></p>
-      <div class="rg-baixar"><button type="button" class="btn" data-rg="rel-gastos">${svgI('rel')}<span>Relatório de gastos</span></button><button type="button" class="btn" data-rg="rel">${svgI('rel')}<span>Relatório completo</span></button></div></section>`;
+    <section class="rg-sec"><div class="rg-baixar"><button type="button" class="btn" data-rg="rel">${svgI('rel')}<span>Relatório completo</span></button></div></section>`;
 }
 
 /* ---------------- tela "Menu" ---------------- */
@@ -470,7 +466,7 @@ function htmlMenu(){
     <button type="button" class="mn-nuvem ${cls}" data-mn="sinc">${svgI('nuvem')}<div><b>${esc(txt)}</b><small>${EM_NUVEM ? 'Toque para sincronizar agora' : 'Este aparelho não está conectado à nuvem da equipe'}</small></div></button>
     <div class="mn-lista">
       <button type="button" data-mn="projetos">${svgI('pasta')}<div><b>Projetos</b><small>${esc(meta ? meta.nome : '')} · trocar, criar, copiar ou importar planilha</small></div></button>
-      <button type="button" data-mn="relatorios">${svgI('rel')}<div><b>Relatórios e arquivos</b><small>Cronograma, gastos, tabela, fotos, KML, GPX, planilhas</small></div></button>
+      <button type="button" data-mn="relatorios">${svgI('rel')}<div><b>Relatórios e arquivos</b><small>Cronograma, tabela, fotos, KML, GPX, planilhas</small></div></button>
       <button type="button" data-mn="offline">${svgI('offline')}<div><b>Preparar para usar sem internet</b><small>Antes de ir a campo: guarda distâncias e traçados no aparelho</small></div></button>
       ${EM_NUVEM && s.papel === 'admin' ? `<button type="button" data-mn="equipe">${svgI('equipe')}<div><b>Equipe e acesso</b><small>Liberar, bloquear ou remover pessoas</small></div><i class="mn-badge" id="mnPedidos" hidden></i></button>` : ''}
       <button type="button" data-mn="instalar" id="mnInstalar" hidden>${svgI('baixar')}<div><b>Instalar o app</b><small>Abre em tela cheia e funciona sem internet</small></div></button>

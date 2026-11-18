@@ -1950,7 +1950,7 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
 .d-dia.ok i{color:#07523A}
 .d-dia.sel{border-color:var(--c);box-shadow:inset 0 0 0 2px var(--c)}
 /* registros */
-.c-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px;border-radius:14px;background:var(--papel);margin-bottom:12px}
+.c-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:var(--papel);margin-bottom:12px}
 .c-seg button{height:40px;border:0;border-radius:10px;background:none;font:600 14px/1 var(--corpo);color:var(--cinza)}
 .c-seg [aria-pressed=true]{background:#fff;color:var(--tinta);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .c-vis{list-style:none;margin:0;padding:0;display:grid;gap:8px}
@@ -2110,12 +2110,11 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
       <div class="menu" id="menu">
         <button class="btn" id="bMenu" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg><span>Relatórios</span><span class="seta-m">▾</span></button>
         <div class="menu-lista" role="menu">
-          <button data-acao="crono">Relatório completo<small>Resumo geral, cronograma dia a dia, paradas com observações e anotações, hospedagens e gastos. Imprime ou salva em PDF.</small></button>
-          <button data-acao="gastos">Relatório de gastos<small>Todos os gastos lançados, por data, tipo e etapa, com previsto x realizado.</small></button>
+          <button data-acao="crono">Relatório completo<small>Resumo geral, cronograma dia a dia, paradas com observações e anotações e hospedagens. Imprime ou salva em PDF.</small></button>
           <button data-acao="tabela" id="mTabela">Tabela das estações<small>Todas as estações do projeto com etapa, dia, horário e acesso.</small></button>
           <hr>
           <button data-acao="csv">Baixar planilha do roteiro (CSV)</button>
-          <button data-acao="csvApoio">Baixar hospedagens, paradas e gastos (CSV)</button>
+          <button data-acao="csvApoio">Baixar hospedagens e paradas (CSV)</button>
           <button data-acao="kml">Baixar para Google My Maps / Earth (KML)<small>Pontos com o número da parada, separados por dia. Do quadro geral, leva todas as etapas.</small></button>
           <button data-acao="fotos-zip">Baixar fotos (ZIP)<small>Fotos em JPG com GPS gravado (EXIF) e carimbo, planilha fotos.csv e fotos.kml para o Google Earth.</small></button>
           <button data-acao="geojson">Baixar traçado e estações (GeoJSON)</button>
@@ -2201,7 +2200,7 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
         </details>
         <details class="caixa" id="apoiosGeralBox">
           <summary>Hospedagens e paradas <small id="apoiosGeralN"></small></summary>
-          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone, gasto…" aria-label="Buscar nas hospedagens e paradas"><div id="apoiosGeral"></div></div>
+          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone…" aria-label="Buscar nas hospedagens e paradas"><div id="apoiosGeral"></div></div>
         </details>
       </section>
 
@@ -2216,14 +2215,14 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
         <div id="lista" aria-label="Pontos em ordem de visita"></div>
         <details class="caixa" id="apoiosEtapaBox">
           <summary>Hospedagens e paradas da etapa <small id="apoiosEtapaN"></small></summary>
-          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone, gasto…" aria-label="Buscar nas hospedagens e paradas da etapa"><div id="apoiosEtapa"></div></div>
+          <div class="caixa-corpo"><input type="search" class="busca-ap" placeholder="Buscar: hotel, posto, município, telefone…" aria-label="Buscar nas hospedagens e paradas da etapa"><div id="apoiosEtapa"></div></div>
         </details>
         <div style="margin:12px 14px 0"><button class="btn perigo peq" id="bExcluirEtapa">Excluir esta etapa</button> <span class="dica">Os pontos são redistribuídos entre as outras etapas, cada um na etapa onde gera menos desvio.</span></div>
       </section>
     </div>
     <datalist id="listaEst"></datalist>
     <datalist id="todos"></datalist>
-    <div class="creditos"><b class="versao" id="versao">Versão 32 · app · 18/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
+    <div class="creditos"><b class="versao" id="versao">Versão 33 · app · 18/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
   </aside>
   <main id="mapa" aria-label="Mapa da rota"></main>
 </div>
@@ -2240,10 +2239,10 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
       </div>
       <div class="grid2">
         <label class="f">Endereço / telefone<input id="aContato" maxlength="120"></label>
-        <label class="f" id="aValorLbl">Valor (R$)<input id="aValor" type="number" min="0" step="0.01" placeholder="0,00"></label>
+        <label class="f" id="aValorLbl" hidden>Valor (R$)<input id="aValor" type="number" min="0" step="0.01" placeholder="0,00"></label>
       </div>
       <label class="f">Observações<textarea id="aNota" rows="2" placeholder="Reserva, horário, café incluso, estacionamento…"></textarea></label>
-      <div class="gastos-box"><div class="gastos-top"><b>Gastos realizados</b><span id="aGastosTot" class="dica" style="margin:0"></span><button type="button" class="btn peq" id="aAddGasto">+ Adicionar gasto</button></div><div id="aGastos"></div></div>
+      <div class="gastos-box" hidden><div class="gastos-top"><b>Gastos realizados</b><span id="aGastosTot" class="dica" style="margin:0"></span><button type="button" class="btn peq" id="aAddGasto">+ Adicionar gasto</button></div><div id="aGastos"></div></div>
       <p class="dica" id="aPos"></p>
     </div>
     <div class="dlg-pe">
@@ -6158,7 +6157,7 @@ function popupApoio(a, latlng){
   const T = TIPOS[a.tipo], e = etapaPorId(a.etapa);
   const el = document.createElement('div'); el.className = 'pop';
   el.innerHTML = `<div style="display:flex;gap:10px;align-items:center">${icone(a.tipo, 'cheio')}<div><h3>${esc(a.nome)}</h3><p class="sub" style="margin:0">${T.nome}${a.mun ? ` em ${esc(munNome(a.mun))}` : ''}${e ? `, ${esc(e.nome)}` : ''}</p></div></div>
-    ${a.contato ? `<p style="margin:8px 0 0">${esc(a.contato)}</p>` : ''}${a.valor ? `<p style="margin:4px 0 0"><b>${fmtR(a.valor)}</b> ${a.tipo === 'hosp' ? 'por diária' : ''}</p>` : ''}
+    ${a.contato ? `<p style="margin:8px 0 0">${esc(a.contato)}</p>` : ''}
     ${a.nota ? `<p class="rot" style="margin-top:4px">${esc(a.nota)}</p>` : ''}<p class="rot" style="margin-top:8px">Arraste o ícone para ajustar a posição.</p>
     <div class="botoes"><button type="button" class="btn primario" data-a="ed">Editar</button><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lon}">Navegar</a><button type="button" class="btn perigo" data-a="ex">Excluir</button></div>`;
   el.querySelector('[data-a=ed]').onclick = () => { map.closePopup(); abrirFormApoio(a); };
@@ -6324,7 +6323,7 @@ function linksGoogle(e, D){ return gmPlano(e, D).partes.map(x => x.url); }
 const miniApoios = lst => lst.length ? `<span class="mini">${lst.map(a => `<span class="icmini">${icone(a.tipo)}${esc(a.nome)}</span>`).join('')}</span>` : '';
 function itemApoio(a, comEtapa){
   const e = etapaPorId(a.etapa);
-  return `<div class="apoio" data-apoio="${a.uid}">${icone(a.tipo, 'cheio')}<div><b>${esc(a.nome)}</b><span>${TIPOS[a.tipo].nome}${a.mun ? ` em ${esc(MUN[a.mun].n)}` : ''}${comEtapa && e ? `, ${esc(e.nome)}` : ''}${a.valor ? `, previsto ${fmtR(a.valor)}${a.tipo === 'hosp' ? '/diária' : ''}` : ''}${gastoTotal(a) ? `, <b class="gasto-v">gasto ${fmtR(gastoTotal(a))}</b>` : ''}${a.contato ? `. ${esc(a.contato)}` : ''}</span></div>
+  return `<div class="apoio" data-apoio="${a.uid}">${icone(a.tipo, 'cheio')}<div><b>${esc(a.nome)}</b><span>${TIPOS[a.tipo].nome}${a.mun ? ` em ${esc(MUN[a.mun].n)}` : ''}${comEtapa && e ? `, ${esc(e.nome)}` : ''}${a.contato ? `. ${esc(a.contato)}` : ''}</span></div>
     <button class="remover" data-exapoio="${a.uid}" title="Excluir" aria-label="Excluir ${esc(a.nome)}">×</button><span class="sr-busca">${esc([a.nota, ...(a.gastos || []).map(g => g.desc)].filter(Boolean).join(' '))}</span></div>`;
 }
 function secaoApoios(lst, comEtapa){
@@ -6336,7 +6335,7 @@ function secaoApoios(lst, comEtapa){
     return `<div class="pern-item">
       <span class="tagmodo ${manualCidade ? 'man' : 'aut'}" title="${manualCidade ? 'Cidade de pernoite escolhida por você' : 'Cidade calculada pelo roteiro: muda quando a etapa é otimizada'}">${manualCidade ? 'manual' : 'auto'}</span>
       <div class="pern-txt"><b>${esc(MUN[D.to].n)}</b><span>${comEtapa ? `${esc(e.nome)}, ` : ''}noite do dia ${d+1}${D.data ? ` (${fmtDS(D.data)})` : ''}</span></div>
-      ${ho ? `<button class="chip" data-apoio="${ho.uid}" title="Hospedagem registrada por você">${icone('hosp', 'cheio')}${esc(ho.nome)}${ho.valor ? `, ${fmtR(ho.valor)}` : ''}</button>` : `<button class="chip sem" data-hosp="${D.to}" data-et="${e.id}">${icone('hosp')}Registrar</button>`}</div>`; }); });
+      ${ho ? `<button class="chip" data-apoio="${ho.uid}" title="Hospedagem registrada por você">${icone('hosp', 'cheio')}${esc(ho.nome)}</button>` : `<button class="chip sem" data-hosp="${D.to}" data-et="${e.id}">${icone('hosp')}Registrar</button>`}</div>`; }); });
   const reg = lst.map(a => { const solta = a.tipo === 'hosp' && !usados.has(a.uid);
     return itemApoio(a, comEtapa).replace('<div><b>', `<div><span class="tagmodo man" title="Registrado por você; não muda ao otimizar">manual</span><b>`).replace('</span></div>\n', `${solta ? '<span class="solta">Não é pernoite no roteiro atual (mudou ao otimizar). Mantido até você excluir.</span>' : ''}</span></div>\n`); }).join('');
   return `<h4 class="sec-t">Pernoites do roteiro <small>calculados automaticamente; atualizam ao otimizar</small></h4>
@@ -6423,7 +6422,7 @@ function renderLista(){
       const lastId = D.j > D.i ? e.stops[D.j-1].id : null, ho = hospDe(e, D.to);
       const sel = lastId ? `<select data-pern="${lastId}" aria-label="Cidade de pernoite">${cidadesPerto(lastId, D.to).map(x => `<option value="${x.id}"${x.id === D.to ? ' selected' : ''}>${esc(MUN[x.id].n)} (${Math.round(x.d)} km)</option>`).join('')}</select>` : `<b>${esc(MUN[D.to].n)}</b>`;
       h += `<div class="ponta${off ? ' esmaecido' : ''}" style="flex-wrap:wrap"><span class="hora">${fmtHora(D.chegada)}</span><span class="cama">${svgTipo('hosp')}</span><span>Pernoite em ${sel} +${fmtKm(ult.km)} km (${fmtH(ult.h)})</span>
-        ${ho ? `<button class="chip" data-apoio="${ho.uid}">${icone('hosp', 'cheio')}${esc(ho.nome)}${ho.valor ? `, ${fmtR(ho.valor)}` : ''}</button>` : `<button class="chip sem" data-hosp="${D.to}">${icone('hosp')}Registrar hospedagem</button>`}</div>`;
+        ${ho ? `<button class="chip" data-apoio="${ho.uid}">${icone('hosp', 'cheio')}${esc(ho.nome)}</button>` : `<button class="chip sem" data-hosp="${D.to}">${icone('hosp')}Registrar hospedagem</button>`}</div>`;
     }
   });
   const ativo = document.activeElement, foco = ativo && ativo.closest && ativo.closest('[data-relato]') ? [ativo.closest('[data-relato]').dataset.relato, ativo.selectionStart, ativo.selectionEnd] : null;
@@ -6466,7 +6465,7 @@ function renderGeral(){
     h += `<div class="card" style="--c:${e.cor}" data-abrir="${e.id}" tabindex="0" role="button" aria-label="Abrir ${esc(e.nome)}">
       <div class="card-top"><b>${esc(e.nome)}</b><span class="periodo">${periodo(p) || 'sem data'}</span></div>
       <div class="card-nums"><span><b>${e.stops.length}</b> ${e.stops.length === 1 ? 'estação' : 'estações'}</span><span><b>${p.days.length}</b> ${p.days.length === 1 ? 'dia' : 'dias'}${p.diasAjust ? ` (pedido: ${p.diasAjust.pedido})` : e.dias ? ' (fixo)' : ''}</span><span><b>${fmtKm(p.tot.km)}</b> km</span><span><b>${fmtHc(p.tot.h)}</b> ao volante</span></div>
-      <div class="card-apoio"><span class="icmini tagmodo ${e.ordem === 'manual' ? 'man' : 'aut'}" title="${e.ordem === 'manual' ? 'A ordem foi mudada à mão. Otimizar dentro da etapa refaz.' : 'Ordem calculada pelo otimizador.'}">${e.ordem === 'manual' ? 'ordem manual' : 'ordem otimizada'}</span>${nFix ? `<span class="icmini tagmodo man" title="Pontos colocados à mão nesta etapa; o Otimizar do Quadro geral não os move">${nFix} ${nFix === 1 ? 'fixado' : 'fixados'}</span>` : ''}${p.noites.length ? `<span class="icmini">${icone('hosp')}${hs.length} de ${p.noites.length} pernoites com hospedagem</span>` : '<span class="icmini">Sem pernoite</span>'}${(() => { const g = apoiosDe(e).reduce((t, a) => t + gastoTotal(a), 0); return g ? `<span class="icmini gasto-v">Gasto: ${fmtR(g)}</span>` : ''; })()}</div>
+      <div class="card-apoio"><span class="icmini tagmodo ${e.ordem === 'manual' ? 'man' : 'aut'}" title="${e.ordem === 'manual' ? 'A ordem foi mudada à mão. Otimizar dentro da etapa refaz.' : 'Ordem calculada pelo otimizador.'}">${e.ordem === 'manual' ? 'ordem manual' : 'ordem otimizada'}</span>${nFix ? `<span class="icmini tagmodo man" title="Pontos colocados à mão nesta etapa; o Otimizar do Quadro geral não os move">${nFix} ${nFix === 1 ? 'fixado' : 'fixados'}</span>` : ''}${p.noites.length ? `<span class="icmini">${icone('hosp')}${hs.length} de ${p.noites.length} pernoites com hospedagem</span>` : '<span class="icmini">Sem pernoite</span>'}</div>
       <p class="card-cidades">${nomes.slice(0, 10).map(esc).join(', ')}${nomes.length > 10 ? ` e mais ${nomes.length - 10}` : ''}${nomes.length ? '' : 'Nenhum ponto ainda.'}</p>
       ${av.length ? `<p class="aviso">${av.map(esc).join(' ')}</p>` : ''}</div>`;
   });
@@ -6690,16 +6689,11 @@ function gastosPorTipo(lst){ const o = {}; Object.keys(TIPOS).forEach(k => o[k] 
 const fmtData = iso => { if (!iso) return '–'; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
 function tabelaApoios(lst, titulo, cor, comEtapa){
   if (!lst.length) return '';
-  const tp = gastosPorTipo(lst), tPrev = lst.reduce((a, x) => a + previsto(x), 0), tGasto = lst.reduce((a, x) => a + gastoTotal(x), 0);
-  return `<table class="rel"><caption style="--c:${cor}">${esc(titulo)}<span>${lst.length} registros; previsto ${fmtR(tPrev)}, gasto ${fmtR(tGasto)}</span></caption>
-    <thead><tr><th>Tipo</th><th>Nome</th>${comEtapa ? '<th>Etapa</th>' : ''}<th>Município</th><th>Contato</th><th>Previsto</th><th>Gastos realizados</th><th>Total gasto</th><th>Observações</th></tr></thead><tbody>
+  return `<table class="rel"><caption style="--c:${cor}">${esc(titulo)}<span>${lst.length} registros</span></caption>
+    <thead><tr><th>Tipo</th><th>Nome</th>${comEtapa ? '<th>Etapa</th>' : ''}<th>Município</th><th>Contato</th><th>Observações</th></tr></thead><tbody>
     ${lst.map(a => { const e = etapaPorId(a.etapa), nn = a.tipo === 'hosp' ? noitesHotel(a) : 0;
-      return `<tr><td class="nw">${TIPOS[a.tipo].nome}</td><td><b>${esc(a.nome)}</b></td>${comEtapa ? `<td class="nw">${e ? esc(e.nome) : '–'}</td>` : ''}<td>${a.mun ? esc(MUN[a.mun].n) : '–'}</td><td>${esc(a.contato) || '–'}</td>
-        <td class="n">${a.valor ? `${fmtR(a.valor)}${a.tipo === 'hosp' ? `/diária${nn ? `<br><span class="rot">${nn} ${nn === 1 ? 'noite' : 'noites'}: ${fmtR(previsto(a))}</span>` : ''}` : ''}` : '–'}</td>
-        <td>${(a.gastos || []).length ? a.gastos.map(g => `<span class="nw">${fmtData(g.data)}</span> ${esc(g.desc)}: <b>${fmtR(g.valor)}</b>`).join('<br>') : '<span class="falta">nenhum</span>'}</td>
-        <td class="n"><b>${gastoTotal(a) ? fmtR(gastoTotal(a)) : '–'}</b></td><td>${esc(a.nota) || ''}</td></tr>`; }).join('')}
-    </tbody><tfoot>${Object.entries(tp).filter(([k, v]) => v.n).map(([k, v]) => `<tr><td colspan="${comEtapa ? 5 : 4}">${TIPOS[k].nome} (${v.n})</td><td class="n">${fmtR(v.prev)}</td><td></td><td class="n">${fmtR(v.gasto)}</td><td></td></tr>`).join('')}
-      <tr><td colspan="${comEtapa ? 5 : 4}">Total</td><td class="n">${fmtR(tPrev)}</td><td></td><td class="n">${fmtR(tGasto)}</td><td></td></tr></tfoot></table>`;
+      return `<tr><td class="nw">${TIPOS[a.tipo].nome}${nn ? `<br><span class="rot">${nn} ${nn === 1 ? 'noite' : 'noites'}</span>` : ''}</td><td><b>${esc(a.nome)}</b></td>${comEtapa ? `<td class="nw">${e ? esc(e.nome) : '–'}</td>` : ''}<td>${a.mun ? esc(MUN[a.mun].n) : '–'}</td><td>${esc(a.contato) || '–'}</td><td>${esc(a.nota) || ''}</td></tr>`; }).join('')}
+    </tbody></table>`;
 }
 /* Prepara o relatório para leitura no celular: cada tabela rola na horizontal dentro da sua caixa e há um índice das etapas. */
 function prepRel(){
@@ -6718,15 +6712,14 @@ function abrirCrono(){
   let h = `<div class="rel-resumo">
     <div><b>${T.n}</b><span>pontos (${T.est} estações)</span></div><div><b>${state.etapas.length}</b><span>etapas</span></div><div><b>${T.d}</b><span>dias de campo</span></div>
     <div><b>${fmtKm(T.km)}</b><span>km</span></div><div><b>${fmtHc(T.h)}</b><span>ao volante (só deslocamento)</span></div><div><b>${fmtHc(T.vis)}</b><span>paradas nas estações</span></div><div><b>${fmtHc(T.pausa)}</b><span>almoço e lanches</span></div>
-    <div><b>${T.feitos}</b><span>visitadas</span></div><div><b>${T.hosp}/${T.noites}</b><span>pernoites com hospedagem</span></div><div><b>${T.ac}</b><span>acessos a confirmar</span></div>
-    <div><b>${fmtR(T.prev)}</b><span>previsto</span></div><div><b>${fmtR(T.gasto)}</b><span>gasto realizado</span></div></div>
+    <div><b>${T.feitos}</b><span>visitadas</span></div><div><b>${T.hosp}/${T.noites}</b><span>pernoites com hospedagem</span></div><div><b>${T.ac}</b><span>acessos a confirmar</span></div></div>
     <p class="rot" style="margin:6px 0 0">Premissas: ${resumoCfg()}. Km e horas incluem os trechos até a via mais próxima de cada estação e até as cidades de pernoite.${state.pool.length ? ` ${state.pool.length} pontos ainda sem etapa.` : ''}</p>`;
   h += `<table class="rel"><caption style="--c:var(--tinta)">Resumo por etapa</caption>
-    <thead><tr><th>Etapa</th><th>Período</th><th>Pontos</th><th>Estações</th><th>Dias</th><th>Km</th><th>Ao volante</th><th>Visitadas</th><th>Hospedagem</th><th>Acesso a confirmar</th><th>Previsto</th><th>Gasto</th></tr></thead><tbody>
+    <thead><tr><th>Etapa</th><th>Período</th><th>Pontos</th><th>Estações</th><th>Dias</th><th>Km</th><th>Ao volante</th><th>Visitadas</th><th>Hospedagem</th><th>Acesso a confirmar</th></tr></thead><tbody>
     ${state.etapas.map(e => { const p = P[e.id], ap = apoiosDe(e);
       return `<tr><td><b>${esc(e.nome)}</b><br><span class="rot">${e.ordem === 'manual' ? 'ordem manual' : 'ordem otimizada'}</span></td><td>${periodo(p) || '–'}</td><td class="n">${e.stops.length}</td><td class="n">${p.nEst}</td><td class="n">${p.days.length}</td><td class="n">${fmtKm(p.tot.km)}</td><td class="n">${fmtH(p.tot.h)}</td>
-        <td class="n">${e.stops.filter(s => s.feito).length}</td><td>${p.hospNoites.filter(Boolean).length} de ${p.noites.length}</td><td class="n">${p.acessoAviso.length}</td><td class="n">${fmtR(ap.reduce((a, x) => a + previsto(x), 0))}</td><td class="n">${fmtR(ap.reduce((a, x) => a + gastoTotal(x), 0))}</td></tr>`; }).join('')}
-    </tbody><tfoot><tr><td colspan="2">Total</td><td class="n">${T.n}</td><td class="n">${T.est}</td><td class="n">${T.d}</td><td class="n">${fmtKm(T.km)}</td><td class="n">${fmtH(T.h)}</td><td class="n">${T.feitos}</td><td>${T.hosp} de ${T.noites}</td><td class="n">${T.ac}</td><td class="n">${fmtR(T.prev)}</td><td class="n">${fmtR(T.gasto)}</td></tr></tfoot></table>`;
+        <td class="n">${e.stops.filter(s => s.feito).length}</td><td>${p.hospNoites.filter(Boolean).length} de ${p.noites.length}</td><td class="n">${p.acessoAviso.length}</td></tr>`; }).join('')}
+    </tbody><tfoot><tr><td colspan="2">Total</td><td class="n">${T.n}</td><td class="n">${T.est}</td><td class="n">${T.d}</td><td class="n">${fmtKm(T.km)}</td><td class="n">${fmtH(T.h)}</td><td class="n">${T.feitos}</td><td>${T.hosp} de ${T.noites}</td><td class="n">${T.ac}</td></tr></tfoot></table>`;
   state.etapas.forEach(e => {
     const p = P[e.id];
     h += `<h3 class="rel-etapa" style="--c:${e.cor}">${esc(e.nome)}<span>${periodo(p) || 'sem data definida'} · ${e.stops.length} estações · ${p.days.length} dias · ${fmtKm(p.tot.km)} km · ${fmtH(p.tot.h)} ao volante</span></h3>`;
@@ -6736,7 +6729,7 @@ function abrirCrono(){
       const perc = [nomeNo(D.from), ...e.stops.slice(D.i, D.j).map((s, x) => `${EST[s.id].nome}${p.info[D.i + x].conj ? '' : ` (${fmtHora(p.info[D.i + x].cheg)})`}${s.feito ? ' ✓' : ''}`), D.to === BH ? BASE_S : `${MUN[D.to].n} (pernoite)`];
       const ho = D.to !== BH ? hospDe(e, D.to) : null;
       h += `<tr><td>${d+1}</td><td class="nw">${D.data ? fmtDS(D.data) : '–'}</td><td class="nw${D.excede ? ' exc' : ''}">${fmtHora(D.saida)}–${fmtHora(D.chegada)}</td><td>${perc.map(esc).join(' → ')}</td><td class="n">${fmtKm(D.km)}</td><td class="n">${fmtH(D.drive)}</td>
-        <td>${D.to === BH ? `Retorno a ${esc(BASE_N)}` : `${esc(MUN[D.to].n)}: ${ho ? `${esc(ho.nome)}${ho.valor ? ` (${fmtR(ho.valor)}/diária)` : ''}${ho.contato ? `, ${esc(ho.contato)}` : ''}` : '<span class="falta">a definir</span>'}`}</td></tr>`;
+        <td>${D.to === BH ? `Retorno a ${esc(BASE_N)}` : `${esc(MUN[D.to].n)}: ${ho ? `${esc(ho.nome)}${ho.contato ? `, ${esc(ho.contato)}` : ''}` : '<span class="falta">a definir</span>'}`}</td></tr>`;
     });
     h += `</tbody><tfoot><tr><td colspan="4">Total da etapa</td><td class="n">${fmtKm(p.tot.km)}</td><td class="n">${fmtH(p.tot.h)}</td><td>${p.hospNoites.filter(Boolean).length} de ${p.noites.length} pernoites com hospedagem</td></tr></tfoot></table>`;
     h += `<table class="rel"><caption style="--c:${e.cor}">Paradas, situação e observações</caption>
@@ -6746,7 +6739,7 @@ function abrirCrono(){
         const ob = [s.nota && `<b>Obs.:</b> ${esc(s.nota)}`, s.sit && `<b>Situação:</b> ${esc(SITUACOES[s.sit] || s.sit)}`, s.relato && `<b>Visita:</b> ${esc(s.relato)}`].filter(Boolean).join('<br>');
         return `<tr><td class="n">${k+1}</td><td class="n">${inf.d+1}</td><td class="nw">${inf.conj ? '<span class="rot" title="Mesma visita da parada anterior (estação no mesmo local): não conta hora própria">↳ junto com a anterior</span>' : `${fmtHora(inf.cheg)}–${fmtHora(inf.said)}`}</td><td><b>${esc(est.nome)}</b> ${tipoBadge(est)}${s.fixo ? ' <span class="rot">(manual)</span>' : ''}</td><td class="nw">${est.cod.map(esc).join('<br>')}</td><td>${esc(estMun(est))}</td><td>${ac}</td>
           <td class="nw">${s.feito ? `<span class="ok-r">Visitada<br>${esc(s.feito)}</span>` : '<span class="falta">Pendente</span>'}${(s.fotos || []).length ? `<br>📷 ${s.fotos.length}` : ''}</td><td>${ob || ''}</td></tr>`; }).join('')}</tbody></table>`;
-    h += tabelaApoios(apoiosDe(e), 'Hospedagens, paradas e gastos da etapa', e.cor, false);
+    h += tabelaApoios(apoiosDe(e), 'Hospedagens e paradas da etapa', e.cor, false);
     h += secaoFotosRel(e, e.cor);
   });
   const soltos = state.apoios.filter(a => !etapaPorId(a.etapa));
@@ -7053,12 +7046,10 @@ function exportKML(){
   toast('KML baixado. No Google My Maps: Criar mapa > Importar. Os pontos aparecem com o número da parada.');
 }
 function exportCSVApoio(){
-  const L_ = [['Tipo','Nome','Etapa','Município','UF','Endereço / telefone','Valor previsto (R$)','Noites como pernoite','Previsto total (R$)','Data do gasto','Descrição do gasto','Valor gasto (R$)','Total gasto no local (R$)','Observações','Latitude','Longitude']];
-  state.apoios.forEach(a => { const e = etapaPorId(a.etapa), base = [TIPOS[a.tipo].nome, a.nome, e ? e.nome : '', a.mun ? MUN[a.mun].n : '', a.mun ? MUN[a.mun].uf : '', a.contato, a.valor ? num(a.valor, 2) : '', a.tipo === 'hosp' ? noitesHotel(a) : '', previsto(a) ? num(previsto(a), 2) : ''];
-    const fim = [gastoTotal(a) ? num(gastoTotal(a), 2) : '', a.nota, a.lat, a.lon];
-    if ((a.gastos || []).length) a.gastos.forEach(g => L_.push([...base, fmtData(g.data), g.desc, num(g.valor, 2), ...fim]));
-    else L_.push([...base, '', '', '', ...fim]); });
-  baixar('hospedagens_paradas_e_gastos.csv', '\ufeff' + L_.map(csvLinha).join('\r\n'), 'text/csv;charset=utf-8');
+  const L_ = [['Tipo','Nome','Etapa','Município','UF','Endereço / telefone','Noites como pernoite','Observações','Latitude','Longitude']];
+  state.apoios.forEach(a => { const e = etapaPorId(a.etapa);
+    L_.push([TIPOS[a.tipo].nome, a.nome, e ? e.nome : '', a.mun ? MUN[a.mun].n : '', a.mun ? MUN[a.mun].uf : '', a.contato, a.tipo === 'hosp' ? noitesHotel(a) : '', a.nota, a.lat, a.lon]); });
+  baixar('hospedagens_e_paradas.csv', '\ufeff' + L_.map(csvLinha).join('\r\n'), 'text/csv;charset=utf-8');
 }
 function exportGeoJSON(){
   const feats = [];
@@ -7399,7 +7390,7 @@ function contManuais(){
   };
 }
 const ITENS_LIMPAR = [
-  ['apoios', c => `Hospedagens e paradas registradas (${c.apoios}), com os gastos lançados (${c.gastos})`],
+  ['apoios', c => `Hospedagens e paradas registradas (${c.apoios})`],
   ['visitas', c => `Visitas marcadas e anotações das visitas (${c.visitas})`],
   ['notas', c => `Observações das estações (${c.notas})`],
   ['fotos', c => `Fotos das estações (${c.fotos})`],
@@ -7410,7 +7401,7 @@ const ITENS_LIMPAR = [
 ];
 function abrirLimpar(){
   const c = contManuais();
-  document.getElementById('limparLista').innerHTML = ITENS_LIMPAR.map(([k, txt]) => { const n = k === 'apoios' ? c.apoios + c.gastos : c[k];
+  document.getElementById('limparLista').innerHTML = ITENS_LIMPAR.map(([k, txt]) => { const n = c[k];
     return `<label class="lim${n ? '' : ' vazio-l'}"><input type="checkbox" value="${k}" ${n ? 'checked' : 'disabled'}><span>${txt(c)}</span></label>`; }).join('');
   dLimpar.showModal();
 }
@@ -7716,7 +7707,7 @@ function resumoProj(p){
 function abrirProjetos(){ renderProjetos(); if (!dProj.open) dProj.showModal(); }
 function renderProjetos(){
   document.getElementById('dProjTit').textContent = 'Projetos';
-  projCorpo.innerHTML = `<p class="dica" style="margin:0">Cada projeto guarda o seu próprio cronograma: estações, etapas, visitas, anotações, fotos, hospedagens e gastos. Ao Salvar, todos os projetos vão juntos no arquivo.</p>
+  projCorpo.innerHTML = `<p class="dica" style="margin:0">Cada projeto guarda o seu próprio cronograma: estações, etapas, visitas, anotações, fotos e hospedagens. Ao Salvar, todos os projetos vão juntos no arquivo.</p>
     <div class="proj-lista">${IDX.lista.map(p => { const r = resumoProj(p), at = p.id === PJ_ID;
       return `<div class="proj${at ? ' atual' : ''}"><div class="proj-info"><b>${esc(p.nome)}${at ? ' <span class="tag">aberto</span>' : ''}</b>
         <span>${r.nEst} estações · ${r.nEt} ${r.nEt === 1 ? 'etapa' : 'etapas'} · ${r.vis} ${r.vis === 1 ? 'visitada' : 'visitadas'} · saída de ${esc(nomeBase(p))}</span>
@@ -7753,7 +7744,7 @@ projCorpo.addEventListener('click', async ev => {
       renderProjetos(); toast(`Criado "${meta.nome}".`); }
     return; }
   if (acao === 'excluir'){
-    if (!window.confirm(`Excluir o projeto "${p.nome}"? Etapas, visitas, anotações e gastos dele serão apagados deste ${APP ? 'celular' : 'navegador'}. Se quiser guardar uma cópia, use ${APP ? 'Exportar' : 'Salvar'} antes.`)) return;
+    if (!window.confirm(`Excluir o projeto "${p.nome}"? Etapas, visitas, anotações e hospedagens dele serão apagados deste ${APP ? 'celular' : 'navegador'}. Se quiser guardar uma cópia, use ${APP ? 'Exportar' : 'Salvar'} antes.`)) return;
     IDX.lista = IDX.lista.filter(x => x.id !== id); IDX.excluidos[id] = Date.now();
     lsDel(keyEstado(id)); lsDel(KEY_DADOS + id); ROTAS.del(id);
     if (id === PJ_ID){ IDX.atual = IDX.lista[0].id; lsSet(KEY_IDX, IDX); if (APP) gravarAppJa(); location.reload(); return; }
@@ -8713,8 +8704,7 @@ function htmlCampo(){
   h += `<div class="cp-rapido"><span>Registrar aqui${GPS.pos ? ' (posição do GPS)' : ''}:</span>
       <button type="button" class="btn" data-cp="apoio" data-t="comb">${svgI('posto')}<span>Abastecimento</span></button>
       <button type="button" class="btn" data-cp="apoio" data-t="alim">${svgI('moeda')}<span>Refeição</span></button>
-      <button type="button" class="btn" data-cp="apoio" data-t="hosp">${svgI('cama')}<span>Hospedagem</span></button>
-      <button type="button" class="btn" data-cp="apoio" data-t="outro">${svgI('moeda')}<span>Outro gasto</span></button></div>`;
+      <button type="button" class="btn" data-cp="apoio" data-t="hosp">${svgI('cama')}<span>Hospedagem</span></button></div>`;
   return h;
 }
 function registrarApoioAqui(tipo){
@@ -8734,8 +8724,7 @@ function htmlRegistros(){
   return `<div class="rg-resumo">
       <div><b>${visitas.length}<small>/${tot}</small></b><span>estações visitadas</span></div>
       <div><b>${num(totTrj.km, totTrj.km < 100 ? 1 : 0)}</b><span>km percorridos (GPS)</span></div>
-      <div><b>${fotos.length}</b><span>fotos</span></div>
-      <div><b>${fmtR(T.gasto)}</b><span>gastos lançados</span></div></div>
+      <div><b>${fotos.length}</b><span>fotos</span></div></div>
     <section class="rg-sec"><div class="rg-t"><h3>Rotas percorridas</h3><label class="rg-chk"><input type="checkbox" data-rg="mostrar" ${GRV.mostrar ? 'checked' : ''}> no mapa</label></div>
       ${GRV.lista.length ? `<ul class="rg-trj">${GRV.lista.map(t => `<li><div><b>${esc(tituloTrj(t))}</b><small>${esc(fmtDataHora(t.inicio))}–${esc(fmtHoraISO(t.fim))} · ${num(t.km, 1)} km · ${fmtDur(t.seg)}${t.etapa && etapaPorId(t.etapa) ? ` · ${esc(etapaPorId(t.etapa).nome)}` : ''}${t.nome ? ` · ${esc(t.nome)}` : ''}</small></div>
           <div class="rg-bt"><button type="button" class="btn" data-rg="ver" data-id="${t.id}">Ver</button><button type="button" class="btn" data-rg="gpx" data-id="${t.id}">GPX</button><button type="button" class="btn" data-rg="nome" data-id="${t.id}">Detalhes</button><button type="button" class="btn qd perigo" data-rg="excluir" data-id="${t.id}" aria-label="Excluir rota">${svgI('lixo')}</button></div></li>`).join('')}</ul>
@@ -8745,9 +8734,7 @@ function htmlRegistros(){
       ${visitas.length ? `<ul class="rg-vis">${visitas.slice(-30).reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-rg="est" data-id="${s.id}"><b>${esc(EST[s.id].nome)}</b> ${tipoBadge(EST[s.id])}<small>${esc(s.feito)} · ${esc(e.nome)}${(s.fotos || []).length ? ` · ${s.fotos.length} foto(s)` : ''}${s.relato ? ' · com anotação' : ''}</small></button></li>`).join('')}</ul>` : '<p class="vazio">Nenhuma visita marcada ainda.</p>'}</section>
     <section class="rg-sec"><div class="rg-t"><h3>Fotos</h3>${fotos.length ? '<button type="button" class="btn" data-rg="zip">Baixar todas (ZIP)</button>' : ''}</div>
       ${fotos.length ? `<div class="rg-fotos">${fotos.slice(0, 24).map(x => `<button type="button" class="th" data-ver-foto="${x.s.id}|${x.f.id}" title="${esc(EST[x.s.id].nome)}"><img data-foto="${x.f.id}" alt="Foto de ${esc(EST[x.s.id].nome)}"></button>`).join('')}</div>` : '<p class="vazio">As fotos tiradas nas visitas aparecem aqui, com GPS gravado.</p>'}</section>
-    <section class="rg-sec"><div class="rg-t"><h3>Gastos</h3></div>
-      <p class="rg-gastos">Previsto <b>${fmtR(T.prev)}</b> · realizado <b>${fmtR(T.gasto)}</b></p>
-      <div class="rg-baixar"><button type="button" class="btn" data-rg="rel-gastos">${svgI('rel')}<span>Relatório de gastos</span></button><button type="button" class="btn" data-rg="rel">${svgI('rel')}<span>Relatório completo</span></button></div></section>`;
+    <section class="rg-sec"><div class="rg-baixar"><button type="button" class="btn" data-rg="rel">${svgI('rel')}<span>Relatório completo</span></button></div></section>`;
 }
 
 /* ---------------- tela "Menu" ---------------- */
@@ -8765,7 +8752,7 @@ function htmlMenu(){
     <button type="button" class="mn-nuvem ${cls}" data-mn="sinc">${svgI('nuvem')}<div><b>${esc(txt)}</b><small>${EM_NUVEM ? 'Toque para sincronizar agora' : 'Este aparelho não está conectado à nuvem da equipe'}</small></div></button>
     <div class="mn-lista">
       <button type="button" data-mn="projetos">${svgI('pasta')}<div><b>Projetos</b><small>${esc(meta ? meta.nome : '')} · trocar, criar, copiar ou importar planilha</small></div></button>
-      <button type="button" data-mn="relatorios">${svgI('rel')}<div><b>Relatórios e arquivos</b><small>Cronograma, gastos, tabela, fotos, KML, GPX, planilhas</small></div></button>
+      <button type="button" data-mn="relatorios">${svgI('rel')}<div><b>Relatórios e arquivos</b><small>Cronograma, tabela, fotos, KML, GPX, planilhas</small></div></button>
       <button type="button" data-mn="offline">${svgI('offline')}<div><b>Preparar para usar sem internet</b><small>Antes de ir a campo: guarda distâncias e traçados no aparelho</small></div></button>
       ${EM_NUVEM && s.papel === 'admin' ? `<button type="button" data-mn="equipe">${svgI('equipe')}<div><b>Equipe e acesso</b><small>Liberar, bloquear ou remover pessoas</small></div><i class="mn-badge" id="mnPedidos" hidden></i></button>` : ''}
       <button type="button" data-mn="instalar" id="mnInstalar" hidden>${svgI('baixar')}<div><b>Instalar o app</b><small>Abre em tela cheia e funciona sem internet</small></div></button>
@@ -8911,7 +8898,7 @@ entradaGPX.onchange = async () => {
    - Hoje: o mapa mostra só o dia escolhido, com as letras do Google Maps; embaixo, a próxima parada com
      Navegar e Cheguei; puxando a folha para cima aparece o dia inteiro em linha do tempo.
    - Gravar rota: botão próprio sobre o mapa, com painel separado.
-   - Registros: visitas, fotos, gastos e rotas gravadas.  - Mais: projetos, etapas, relatórios, conta.
+   - Registros: visitas, fotos e rotas gravadas.  - Mais: projetos, etapas, relatórios, conta.
    ===================================================================================================== */
 if (CELULAR){
   document.documentElement.classList.add('celular');
@@ -9106,7 +9093,7 @@ if (CELULAR){
         <small>${g.continuar ? `Da sua posição · faltam ${g.faltam}` : `Saindo de ${esc(orig)} · todas em ordem`}</small></div>${IC.seta}</a>
         <p class="gm-tit">O que é cada letra no Google Maps</p>${leg(pt)}</div>`).join('');
     else if (ks.length && d < p.days.length - 1) h += `<button type="button" class="c-bt largo pri" data-c="dia" data-d="${d + 1}">Dia concluído · ir para o dia ${d + 2} ${IC.seta}</button>`;
-    h += `<div class="c-linha"><button type="button" class="c-bt" data-c="gasto">${svgI('posto')}<span>Gasto</span></button><button type="button" class="c-bt" data-c="tudo">${IC.camadas}<span>Ver tudo</span></button></div>`;
+    h += `<div class="c-linha"><button type="button" class="c-bt" data-c="tudo">${IC.camadas}<span>Ver tudo</span></button></div>`;
     h += pertoDeVoce(new Set(ks.map(k => e.stops[k].id)));
     return h;
   }
@@ -9210,7 +9197,7 @@ if (CELULAR){
   /* ================= REGISTROS ================= */
   function telaRegistros(){
     const seg = (k, n) => `<button type="button" data-c="seg" data-v="${k}" aria-pressed="${regSeg === k}">${n}</button>`;
-    let h = cab('Registros', '') + `<div class="c-seg">${seg('visitas', 'Visitas')}${seg('fotos', 'Fotos')}${seg('gastos', 'Gastos')}${seg('rotas', 'Rotas')}</div>`;
+    let h = cab('Registros', '') + `<div class="c-seg">${seg('visitas', 'Visitas')}${seg('fotos', 'Fotos')}${seg('rotas', 'Rotas')}</div>`;
     if (regSeg === 'visitas'){
       const v = state.etapas.flatMap(e => e.stops.filter(s => s.feito || s.relato || s.sit || (s.fotos || []).length).map(s => ({e, s})));
       h += v.length ? `<ul class="c-vis">${v.reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-c="estacao" data-id="${s.id}"><b>${esc(EST[s.id].nome)} ${tipoBadge(EST[s.id])}</b>
@@ -9218,11 +9205,6 @@ if (CELULAR){
     } else if (regSeg === 'fotos'){
       const fotos = todasFotos().sort((a, b) => (b.f.data || '').localeCompare(a.f.data || ''));
       h += fotos.length ? `<div class="c-galeria">${fotos.map(x => `<button type="button" data-ver-foto="${x.s.id}|${x.f.id}"><img data-foto="${x.f.id}" alt=""><span>${esc(EST[x.s.id].nome)}</span></button>`).join('')}</div><button type="button" class="c-bt largo" data-c="zip">${svgI('baixar')}<span>Baixar todas (ZIP com GPS)</span></button>` : vazio('As fotos tiradas nas visitas aparecem aqui.');
-    } else if (regSeg === 'gastos'){
-      const T = totaisGerais(), lst = [...state.apoios].sort((a, b) => (b._t || 0) - (a._t || 0));
-      h += `<div class="c-tot"><div><b>${fmtR(T.gasto)}</b><span>realizado</span></div><div><b>${fmtR(T.prev)}</b><span>previsto</span></div></div>
-        <button type="button" class="c-bt largo pri" data-c="gasto">${svgI('moeda')}<span>Registrar gasto ou abastecimento</span></button>` +
-        (lst.length ? `<ul class="c-trj">${lst.map(a => `<li><button type="button" class="c-it" data-c="apoio" data-id="${a.uid}"><b>${esc(a.nome)}</b><small>${TIPOS[a.tipo].nome}${a.mun ? ` · ${esc(MUN[a.mun].n)}` : ''}${gastoTotal(a) ? ` · ${fmtR(gastoTotal(a))}` : a.valor ? ` · previsto ${fmtR(previsto(a))}` : ''}</small></button><a class="c-red" href="${gmIr([a.lat, a.lon])}" target="_blank" rel="noopener" aria-label="Navegar">${IC.gm}</a></li>`).join('')}</ul>` : vazio('Nada registrado ainda.'));
     } else {
       const tot = GRV.lista.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
       h += `<div class="c-tot"><div><b>${num(tot.km, 1)}</b><span>km gravados</span></div><div><b>${GRV.lista.length}</b><span>rotas</span></div></div>
@@ -9259,15 +9241,11 @@ if (CELULAR){
   }
   function telaRelatorios(){
     const it = (a, t, s) => `<button type="button" data-acao="${a}"><div><b>${t}</b>${s ? `<small>${s}</small>` : ''}</div></button>`;
-    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('crono', 'Relatório completo', 'Cronograma, visitas, fotos, gastos e rotas. Imprimir ou PDF.')}${it('gastos', 'Relatório de gastos', '')}${it('tabela', 'Tabela das estações', '')}</div>
-      <p class="c-rot">Baixar</p><div class="c-menu">${it('csv', 'Planilha do roteiro (CSV)', '')}${it('csvApoio', 'Hospedagens e gastos (CSV)', '')}${it('kml', 'Estações (KML, Google Earth)', '')}${it('fotos-zip', 'Fotos (ZIP)', '')}<button type="button" data-c="trj-todas"><div><b>Rotas gravadas (GPX)</b></div></button><button type="button" data-c="copia"><div><b>Cópia de segurança (HTML)</b><small>Abre no computador mesmo sem o app</small></div></button></div>
+    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('crono', 'Relatório completo', 'Cronograma, visitas, fotos e rotas. Imprimir ou PDF.')}${it('tabela', 'Tabela das estações', '')}</div>
+      <p class="c-rot">Baixar</p><div class="c-menu">${it('csv', 'Planilha do roteiro (CSV)', '')}${it('csvApoio', 'Hospedagens e paradas (CSV)', '')}${it('kml', 'Estações (KML, Google Earth)', '')}${it('fotos-zip', 'Fotos (ZIP)', '')}<button type="button" data-c="trj-todas"><div><b>Rotas gravadas (GPX)</b></div></button><button type="button" data-c="copia"><div><b>Cópia de segurança (HTML)</b><small>Abre no computador mesmo sem o app</small></div></button></div>
       <p class="c-rot">Trazer dados</p><div class="c-menu">${it('abrir', 'Importar de arquivo salvo antes', 'HTML ou .json da versão antiga')}</div>`;
   }
-  function telaGasto(){
-    const op = (t, ico, n) => `<button type="button" class="c-tipo" data-c="gasto-tipo" data-t="${t}">${svgI(ico)}<span>${n}</span></button>`;
-    return cab('Registrar', GPS.pos ? 'Na sua posição (GPS)' : 'No centro do mapa · ligue o GPS para usar a sua posição') +
-      `<div class="c-tipos">${op('comb', 'posto', 'Abastecimento')}${op('alim', 'moeda', 'Refeição')}${op('hosp', 'cama', 'Hospedagem')}${op('outro', 'moeda', 'Outro gasto')}</div>`;
-  }
+
   function telaCamadas(){
     const f = state.fundo || 'ruas', op = (k, n, d) => `<button type="button" data-c="fundo" data-id="${k}" aria-pressed="${f === k}"><b>${n}</b><small>${d}</small></button>`;
     return cab('Mapa', '') + `<div class="c-fundos">${temGoogle() ? op('gm', 'Google Maps', 'Ruas do Google') + op('gsat', 'Google Satélite', 'Igual ao Google Earth') : ''}${op('sat', 'Satélite', 'Imagem real com estradas')}${op('ruas', 'Estradas', 'Rodovias e cidades')}${op('ter', 'Terreno', 'Relevo')}${op('nenhum', 'Sem internet', 'Mais leve: limites e rotas guardadas')}</div>
@@ -9277,7 +9255,7 @@ if (CELULAR){
   /* ---------- desenhar ---------- */
   function desenhar(){
     const v = atual(); salvarNota();
-    const T = {hoje:telaHoje, estacoes:telaEstacoes, registros:telaRegistros, mais:telaMais, dias:telaDias, gravar:telaGravar, etapas:telaEtapas, relatorios:telaRelatorios, gasto:telaGasto, camadas:telaCamadas,
+    const T = {hoje:telaHoje, estacoes:telaEstacoes, registros:telaRegistros, mais:telaMais, dias:telaDias, gravar:telaGravar, etapas:telaEtapas, relatorios:telaRelatorios, camadas:telaCamadas,
       equipe:() => cab('Equipe e acesso', '') + '<div id="cEq" class="c-eq"></div>'};
     corpo.innerHTML = v.v === 'estacao' ? telaVisita(v.id) : v.v === 'etapa' ? telaEtapa(v.id) : (T[v.v] || telaHoje)();
     hidratar(corpo);
@@ -9328,8 +9306,6 @@ if (CELULAR){
     else if (c === 'etapa-hoje'){ campoEtapaId = id; diaHoje = null; modoTudo = false; irTab('hoje'); }
     else if (c === 'tudo'){ verTudo(); aba = 'hoje'; pilha = []; marcaNav(); desenhar(); altura('media'); }
     else if (c === 'apoio-novo'){ const m = b.dataset.mun, e = etapaCampo(); abrirFormApoio({tipo:b.dataset.t, mun:m, lat:MUN[m].lat, lon:MUN[m].lon, etapa: e ? e.id : ''}); }
-    else if (c === 'gasto') abrir({v:'gasto'}, 'media');
-    else if (c === 'gasto-tipo'){ voltar(); registrarApoioAqui(b.dataset.t); }
     else if (c === 'gravar'){ iniciarGravacao(); desenhar(); }
     else if (c === 'pausar'){ pausarGravacao(); desenhar(); }
     else if (c === 'continuar'){ continuarGravacao(); desenhar(); }

@@ -896,7 +896,7 @@ function popupApoio(a, latlng){
   const T = TIPOS[a.tipo], e = etapaPorId(a.etapa);
   const el = document.createElement('div'); el.className = 'pop';
   el.innerHTML = `<div style="display:flex;gap:10px;align-items:center">${icone(a.tipo, 'cheio')}<div><h3>${esc(a.nome)}</h3><p class="sub" style="margin:0">${T.nome}${a.mun ? ` em ${esc(munNome(a.mun))}` : ''}${e ? `, ${esc(e.nome)}` : ''}</p></div></div>
-    ${a.contato ? `<p style="margin:8px 0 0">${esc(a.contato)}</p>` : ''}${a.valor ? `<p style="margin:4px 0 0"><b>${fmtR(a.valor)}</b> ${a.tipo === 'hosp' ? 'por diária' : ''}</p>` : ''}
+    ${a.contato ? `<p style="margin:8px 0 0">${esc(a.contato)}</p>` : ''}
     ${a.nota ? `<p class="rot" style="margin-top:4px">${esc(a.nota)}</p>` : ''}<p class="rot" style="margin-top:8px">Arraste o ícone para ajustar a posição.</p>
     <div class="botoes"><button type="button" class="btn primario" data-a="ed">Editar</button><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lon}">Navegar</a><button type="button" class="btn perigo" data-a="ex">Excluir</button></div>`;
   el.querySelector('[data-a=ed]').onclick = () => { map.closePopup(); abrirFormApoio(a); };
@@ -1062,7 +1062,7 @@ function linksGoogle(e, D){ return gmPlano(e, D).partes.map(x => x.url); }
 const miniApoios = lst => lst.length ? `<span class="mini">${lst.map(a => `<span class="icmini">${icone(a.tipo)}${esc(a.nome)}</span>`).join('')}</span>` : '';
 function itemApoio(a, comEtapa){
   const e = etapaPorId(a.etapa);
-  return `<div class="apoio" data-apoio="${a.uid}">${icone(a.tipo, 'cheio')}<div><b>${esc(a.nome)}</b><span>${TIPOS[a.tipo].nome}${a.mun ? ` em ${esc(MUN[a.mun].n)}` : ''}${comEtapa && e ? `, ${esc(e.nome)}` : ''}${a.valor ? `, previsto ${fmtR(a.valor)}${a.tipo === 'hosp' ? '/diária' : ''}` : ''}${gastoTotal(a) ? `, <b class="gasto-v">gasto ${fmtR(gastoTotal(a))}</b>` : ''}${a.contato ? `. ${esc(a.contato)}` : ''}</span></div>
+  return `<div class="apoio" data-apoio="${a.uid}">${icone(a.tipo, 'cheio')}<div><b>${esc(a.nome)}</b><span>${TIPOS[a.tipo].nome}${a.mun ? ` em ${esc(MUN[a.mun].n)}` : ''}${comEtapa && e ? `, ${esc(e.nome)}` : ''}${a.contato ? `. ${esc(a.contato)}` : ''}</span></div>
     <button class="remover" data-exapoio="${a.uid}" title="Excluir" aria-label="Excluir ${esc(a.nome)}">×</button><span class="sr-busca">${esc([a.nota, ...(a.gastos || []).map(g => g.desc)].filter(Boolean).join(' '))}</span></div>`;
 }
 function secaoApoios(lst, comEtapa){
@@ -1074,7 +1074,7 @@ function secaoApoios(lst, comEtapa){
     return `<div class="pern-item">
       <span class="tagmodo ${manualCidade ? 'man' : 'aut'}" title="${manualCidade ? 'Cidade de pernoite escolhida por você' : 'Cidade calculada pelo roteiro: muda quando a etapa é otimizada'}">${manualCidade ? 'manual' : 'auto'}</span>
       <div class="pern-txt"><b>${esc(MUN[D.to].n)}</b><span>${comEtapa ? `${esc(e.nome)}, ` : ''}noite do dia ${d+1}${D.data ? ` (${fmtDS(D.data)})` : ''}</span></div>
-      ${ho ? `<button class="chip" data-apoio="${ho.uid}" title="Hospedagem registrada por você">${icone('hosp', 'cheio')}${esc(ho.nome)}${ho.valor ? `, ${fmtR(ho.valor)}` : ''}</button>` : `<button class="chip sem" data-hosp="${D.to}" data-et="${e.id}">${icone('hosp')}Registrar</button>`}</div>`; }); });
+      ${ho ? `<button class="chip" data-apoio="${ho.uid}" title="Hospedagem registrada por você">${icone('hosp', 'cheio')}${esc(ho.nome)}</button>` : `<button class="chip sem" data-hosp="${D.to}" data-et="${e.id}">${icone('hosp')}Registrar</button>`}</div>`; }); });
   const reg = lst.map(a => { const solta = a.tipo === 'hosp' && !usados.has(a.uid);
     return itemApoio(a, comEtapa).replace('<div><b>', `<div><span class="tagmodo man" title="Registrado por você; não muda ao otimizar">manual</span><b>`).replace('</span></div>\n', `${solta ? '<span class="solta">Não é pernoite no roteiro atual (mudou ao otimizar). Mantido até você excluir.</span>' : ''}</span></div>\n`); }).join('');
   return `<h4 class="sec-t">Pernoites do roteiro <small>calculados automaticamente; atualizam ao otimizar</small></h4>
@@ -1161,7 +1161,7 @@ function renderLista(){
       const lastId = D.j > D.i ? e.stops[D.j-1].id : null, ho = hospDe(e, D.to);
       const sel = lastId ? `<select data-pern="${lastId}" aria-label="Cidade de pernoite">${cidadesPerto(lastId, D.to).map(x => `<option value="${x.id}"${x.id === D.to ? ' selected' : ''}>${esc(MUN[x.id].n)} (${Math.round(x.d)} km)</option>`).join('')}</select>` : `<b>${esc(MUN[D.to].n)}</b>`;
       h += `<div class="ponta${off ? ' esmaecido' : ''}" style="flex-wrap:wrap"><span class="hora">${fmtHora(D.chegada)}</span><span class="cama">${svgTipo('hosp')}</span><span>Pernoite em ${sel} +${fmtKm(ult.km)} km (${fmtH(ult.h)})</span>
-        ${ho ? `<button class="chip" data-apoio="${ho.uid}">${icone('hosp', 'cheio')}${esc(ho.nome)}${ho.valor ? `, ${fmtR(ho.valor)}` : ''}</button>` : `<button class="chip sem" data-hosp="${D.to}">${icone('hosp')}Registrar hospedagem</button>`}</div>`;
+        ${ho ? `<button class="chip" data-apoio="${ho.uid}">${icone('hosp', 'cheio')}${esc(ho.nome)}</button>` : `<button class="chip sem" data-hosp="${D.to}">${icone('hosp')}Registrar hospedagem</button>`}</div>`;
     }
   });
   const ativo = document.activeElement, foco = ativo && ativo.closest && ativo.closest('[data-relato]') ? [ativo.closest('[data-relato]').dataset.relato, ativo.selectionStart, ativo.selectionEnd] : null;
@@ -1204,7 +1204,7 @@ function renderGeral(){
     h += `<div class="card" style="--c:${e.cor}" data-abrir="${e.id}" tabindex="0" role="button" aria-label="Abrir ${esc(e.nome)}">
       <div class="card-top"><b>${esc(e.nome)}</b><span class="periodo">${periodo(p) || 'sem data'}</span></div>
       <div class="card-nums"><span><b>${e.stops.length}</b> ${e.stops.length === 1 ? 'estação' : 'estações'}</span><span><b>${p.days.length}</b> ${p.days.length === 1 ? 'dia' : 'dias'}${p.diasAjust ? ` (pedido: ${p.diasAjust.pedido})` : e.dias ? ' (fixo)' : ''}</span><span><b>${fmtKm(p.tot.km)}</b> km</span><span><b>${fmtHc(p.tot.h)}</b> ao volante</span></div>
-      <div class="card-apoio"><span class="icmini tagmodo ${e.ordem === 'manual' ? 'man' : 'aut'}" title="${e.ordem === 'manual' ? 'A ordem foi mudada à mão. Otimizar dentro da etapa refaz.' : 'Ordem calculada pelo otimizador.'}">${e.ordem === 'manual' ? 'ordem manual' : 'ordem otimizada'}</span>${nFix ? `<span class="icmini tagmodo man" title="Pontos colocados à mão nesta etapa; o Otimizar do Quadro geral não os move">${nFix} ${nFix === 1 ? 'fixado' : 'fixados'}</span>` : ''}${p.noites.length ? `<span class="icmini">${icone('hosp')}${hs.length} de ${p.noites.length} pernoites com hospedagem</span>` : '<span class="icmini">Sem pernoite</span>'}${(() => { const g = apoiosDe(e).reduce((t, a) => t + gastoTotal(a), 0); return g ? `<span class="icmini gasto-v">Gasto: ${fmtR(g)}</span>` : ''; })()}</div>
+      <div class="card-apoio"><span class="icmini tagmodo ${e.ordem === 'manual' ? 'man' : 'aut'}" title="${e.ordem === 'manual' ? 'A ordem foi mudada à mão. Otimizar dentro da etapa refaz.' : 'Ordem calculada pelo otimizador.'}">${e.ordem === 'manual' ? 'ordem manual' : 'ordem otimizada'}</span>${nFix ? `<span class="icmini tagmodo man" title="Pontos colocados à mão nesta etapa; o Otimizar do Quadro geral não os move">${nFix} ${nFix === 1 ? 'fixado' : 'fixados'}</span>` : ''}${p.noites.length ? `<span class="icmini">${icone('hosp')}${hs.length} de ${p.noites.length} pernoites com hospedagem</span>` : '<span class="icmini">Sem pernoite</span>'}</div>
       <p class="card-cidades">${nomes.slice(0, 10).map(esc).join(', ')}${nomes.length > 10 ? ` e mais ${nomes.length - 10}` : ''}${nomes.length ? '' : 'Nenhum ponto ainda.'}</p>
       ${av.length ? `<p class="aviso">${av.map(esc).join(' ')}</p>` : ''}</div>`;
   });
@@ -1428,16 +1428,11 @@ function gastosPorTipo(lst){ const o = {}; Object.keys(TIPOS).forEach(k => o[k] 
 const fmtData = iso => { if (!iso) return '–'; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
 function tabelaApoios(lst, titulo, cor, comEtapa){
   if (!lst.length) return '';
-  const tp = gastosPorTipo(lst), tPrev = lst.reduce((a, x) => a + previsto(x), 0), tGasto = lst.reduce((a, x) => a + gastoTotal(x), 0);
-  return `<table class="rel"><caption style="--c:${cor}">${esc(titulo)}<span>${lst.length} registros; previsto ${fmtR(tPrev)}, gasto ${fmtR(tGasto)}</span></caption>
-    <thead><tr><th>Tipo</th><th>Nome</th>${comEtapa ? '<th>Etapa</th>' : ''}<th>Município</th><th>Contato</th><th>Previsto</th><th>Gastos realizados</th><th>Total gasto</th><th>Observações</th></tr></thead><tbody>
+  return `<table class="rel"><caption style="--c:${cor}">${esc(titulo)}<span>${lst.length} registros</span></caption>
+    <thead><tr><th>Tipo</th><th>Nome</th>${comEtapa ? '<th>Etapa</th>' : ''}<th>Município</th><th>Contato</th><th>Observações</th></tr></thead><tbody>
     ${lst.map(a => { const e = etapaPorId(a.etapa), nn = a.tipo === 'hosp' ? noitesHotel(a) : 0;
-      return `<tr><td class="nw">${TIPOS[a.tipo].nome}</td><td><b>${esc(a.nome)}</b></td>${comEtapa ? `<td class="nw">${e ? esc(e.nome) : '–'}</td>` : ''}<td>${a.mun ? esc(MUN[a.mun].n) : '–'}</td><td>${esc(a.contato) || '–'}</td>
-        <td class="n">${a.valor ? `${fmtR(a.valor)}${a.tipo === 'hosp' ? `/diária${nn ? `<br><span class="rot">${nn} ${nn === 1 ? 'noite' : 'noites'}: ${fmtR(previsto(a))}</span>` : ''}` : ''}` : '–'}</td>
-        <td>${(a.gastos || []).length ? a.gastos.map(g => `<span class="nw">${fmtData(g.data)}</span> ${esc(g.desc)}: <b>${fmtR(g.valor)}</b>`).join('<br>') : '<span class="falta">nenhum</span>'}</td>
-        <td class="n"><b>${gastoTotal(a) ? fmtR(gastoTotal(a)) : '–'}</b></td><td>${esc(a.nota) || ''}</td></tr>`; }).join('')}
-    </tbody><tfoot>${Object.entries(tp).filter(([k, v]) => v.n).map(([k, v]) => `<tr><td colspan="${comEtapa ? 5 : 4}">${TIPOS[k].nome} (${v.n})</td><td class="n">${fmtR(v.prev)}</td><td></td><td class="n">${fmtR(v.gasto)}</td><td></td></tr>`).join('')}
-      <tr><td colspan="${comEtapa ? 5 : 4}">Total</td><td class="n">${fmtR(tPrev)}</td><td></td><td class="n">${fmtR(tGasto)}</td><td></td></tr></tfoot></table>`;
+      return `<tr><td class="nw">${TIPOS[a.tipo].nome}${nn ? `<br><span class="rot">${nn} ${nn === 1 ? 'noite' : 'noites'}</span>` : ''}</td><td><b>${esc(a.nome)}</b></td>${comEtapa ? `<td class="nw">${e ? esc(e.nome) : '–'}</td>` : ''}<td>${a.mun ? esc(MUN[a.mun].n) : '–'}</td><td>${esc(a.contato) || '–'}</td><td>${esc(a.nota) || ''}</td></tr>`; }).join('')}
+    </tbody></table>`;
 }
 /* Prepara o relatório para leitura no celular: cada tabela rola na horizontal dentro da sua caixa e há um índice das etapas. */
 function prepRel(){
@@ -1456,15 +1451,14 @@ function abrirCrono(){
   let h = `<div class="rel-resumo">
     <div><b>${T.n}</b><span>pontos (${T.est} estações)</span></div><div><b>${state.etapas.length}</b><span>etapas</span></div><div><b>${T.d}</b><span>dias de campo</span></div>
     <div><b>${fmtKm(T.km)}</b><span>km</span></div><div><b>${fmtHc(T.h)}</b><span>ao volante (só deslocamento)</span></div><div><b>${fmtHc(T.vis)}</b><span>paradas nas estações</span></div><div><b>${fmtHc(T.pausa)}</b><span>almoço e lanches</span></div>
-    <div><b>${T.feitos}</b><span>visitadas</span></div><div><b>${T.hosp}/${T.noites}</b><span>pernoites com hospedagem</span></div><div><b>${T.ac}</b><span>acessos a confirmar</span></div>
-    <div><b>${fmtR(T.prev)}</b><span>previsto</span></div><div><b>${fmtR(T.gasto)}</b><span>gasto realizado</span></div></div>
+    <div><b>${T.feitos}</b><span>visitadas</span></div><div><b>${T.hosp}/${T.noites}</b><span>pernoites com hospedagem</span></div><div><b>${T.ac}</b><span>acessos a confirmar</span></div></div>
     <p class="rot" style="margin:6px 0 0">Premissas: ${resumoCfg()}. Km e horas incluem os trechos até a via mais próxima de cada estação e até as cidades de pernoite.${state.pool.length ? ` ${state.pool.length} pontos ainda sem etapa.` : ''}</p>`;
   h += `<table class="rel"><caption style="--c:var(--tinta)">Resumo por etapa</caption>
-    <thead><tr><th>Etapa</th><th>Período</th><th>Pontos</th><th>Estações</th><th>Dias</th><th>Km</th><th>Ao volante</th><th>Visitadas</th><th>Hospedagem</th><th>Acesso a confirmar</th><th>Previsto</th><th>Gasto</th></tr></thead><tbody>
+    <thead><tr><th>Etapa</th><th>Período</th><th>Pontos</th><th>Estações</th><th>Dias</th><th>Km</th><th>Ao volante</th><th>Visitadas</th><th>Hospedagem</th><th>Acesso a confirmar</th></tr></thead><tbody>
     ${state.etapas.map(e => { const p = P[e.id], ap = apoiosDe(e);
       return `<tr><td><b>${esc(e.nome)}</b><br><span class="rot">${e.ordem === 'manual' ? 'ordem manual' : 'ordem otimizada'}</span></td><td>${periodo(p) || '–'}</td><td class="n">${e.stops.length}</td><td class="n">${p.nEst}</td><td class="n">${p.days.length}</td><td class="n">${fmtKm(p.tot.km)}</td><td class="n">${fmtH(p.tot.h)}</td>
-        <td class="n">${e.stops.filter(s => s.feito).length}</td><td>${p.hospNoites.filter(Boolean).length} de ${p.noites.length}</td><td class="n">${p.acessoAviso.length}</td><td class="n">${fmtR(ap.reduce((a, x) => a + previsto(x), 0))}</td><td class="n">${fmtR(ap.reduce((a, x) => a + gastoTotal(x), 0))}</td></tr>`; }).join('')}
-    </tbody><tfoot><tr><td colspan="2">Total</td><td class="n">${T.n}</td><td class="n">${T.est}</td><td class="n">${T.d}</td><td class="n">${fmtKm(T.km)}</td><td class="n">${fmtH(T.h)}</td><td class="n">${T.feitos}</td><td>${T.hosp} de ${T.noites}</td><td class="n">${T.ac}</td><td class="n">${fmtR(T.prev)}</td><td class="n">${fmtR(T.gasto)}</td></tr></tfoot></table>`;
+        <td class="n">${e.stops.filter(s => s.feito).length}</td><td>${p.hospNoites.filter(Boolean).length} de ${p.noites.length}</td><td class="n">${p.acessoAviso.length}</td></tr>`; }).join('')}
+    </tbody><tfoot><tr><td colspan="2">Total</td><td class="n">${T.n}</td><td class="n">${T.est}</td><td class="n">${T.d}</td><td class="n">${fmtKm(T.km)}</td><td class="n">${fmtH(T.h)}</td><td class="n">${T.feitos}</td><td>${T.hosp} de ${T.noites}</td><td class="n">${T.ac}</td></tr></tfoot></table>`;
   state.etapas.forEach(e => {
     const p = P[e.id];
     h += `<h3 class="rel-etapa" style="--c:${e.cor}">${esc(e.nome)}<span>${periodo(p) || 'sem data definida'} · ${e.stops.length} estações · ${p.days.length} dias · ${fmtKm(p.tot.km)} km · ${fmtH(p.tot.h)} ao volante</span></h3>`;
@@ -1474,7 +1468,7 @@ function abrirCrono(){
       const perc = [nomeNo(D.from), ...e.stops.slice(D.i, D.j).map((s, x) => `${EST[s.id].nome}${p.info[D.i + x].conj ? '' : ` (${fmtHora(p.info[D.i + x].cheg)})`}${s.feito ? ' ✓' : ''}`), D.to === BH ? BASE_S : `${MUN[D.to].n} (pernoite)`];
       const ho = D.to !== BH ? hospDe(e, D.to) : null;
       h += `<tr><td>${d+1}</td><td class="nw">${D.data ? fmtDS(D.data) : '–'}</td><td class="nw${D.excede ? ' exc' : ''}">${fmtHora(D.saida)}–${fmtHora(D.chegada)}</td><td>${perc.map(esc).join(' → ')}</td><td class="n">${fmtKm(D.km)}</td><td class="n">${fmtH(D.drive)}</td>
-        <td>${D.to === BH ? `Retorno a ${esc(BASE_N)}` : `${esc(MUN[D.to].n)}: ${ho ? `${esc(ho.nome)}${ho.valor ? ` (${fmtR(ho.valor)}/diária)` : ''}${ho.contato ? `, ${esc(ho.contato)}` : ''}` : '<span class="falta">a definir</span>'}`}</td></tr>`;
+        <td>${D.to === BH ? `Retorno a ${esc(BASE_N)}` : `${esc(MUN[D.to].n)}: ${ho ? `${esc(ho.nome)}${ho.contato ? `, ${esc(ho.contato)}` : ''}` : '<span class="falta">a definir</span>'}`}</td></tr>`;
     });
     h += `</tbody><tfoot><tr><td colspan="4">Total da etapa</td><td class="n">${fmtKm(p.tot.km)}</td><td class="n">${fmtH(p.tot.h)}</td><td>${p.hospNoites.filter(Boolean).length} de ${p.noites.length} pernoites com hospedagem</td></tr></tfoot></table>`;
     h += `<table class="rel"><caption style="--c:${e.cor}">Paradas, situação e observações</caption>
@@ -1484,7 +1478,7 @@ function abrirCrono(){
         const ob = [s.nota && `<b>Obs.:</b> ${esc(s.nota)}`, s.sit && `<b>Situação:</b> ${esc(SITUACOES[s.sit] || s.sit)}`, s.relato && `<b>Visita:</b> ${esc(s.relato)}`].filter(Boolean).join('<br>');
         return `<tr><td class="n">${k+1}</td><td class="n">${inf.d+1}</td><td class="nw">${inf.conj ? '<span class="rot" title="Mesma visita da parada anterior (estação no mesmo local): não conta hora própria">↳ junto com a anterior</span>' : `${fmtHora(inf.cheg)}–${fmtHora(inf.said)}`}</td><td><b>${esc(est.nome)}</b> ${tipoBadge(est)}${s.fixo ? ' <span class="rot">(manual)</span>' : ''}</td><td class="nw">${est.cod.map(esc).join('<br>')}</td><td>${esc(estMun(est))}</td><td>${ac}</td>
           <td class="nw">${s.feito ? `<span class="ok-r">Visitada<br>${esc(s.feito)}</span>` : '<span class="falta">Pendente</span>'}${(s.fotos || []).length ? `<br>📷 ${s.fotos.length}` : ''}</td><td>${ob || ''}</td></tr>`; }).join('')}</tbody></table>`;
-    h += tabelaApoios(apoiosDe(e), 'Hospedagens, paradas e gastos da etapa', e.cor, false);
+    h += tabelaApoios(apoiosDe(e), 'Hospedagens e paradas da etapa', e.cor, false);
     h += secaoFotosRel(e, e.cor);
   });
   const soltos = state.apoios.filter(a => !etapaPorId(a.etapa));
@@ -1791,12 +1785,10 @@ function exportKML(){
   toast('KML baixado. No Google My Maps: Criar mapa > Importar. Os pontos aparecem com o número da parada.');
 }
 function exportCSVApoio(){
-  const L_ = [['Tipo','Nome','Etapa','Município','UF','Endereço / telefone','Valor previsto (R$)','Noites como pernoite','Previsto total (R$)','Data do gasto','Descrição do gasto','Valor gasto (R$)','Total gasto no local (R$)','Observações','Latitude','Longitude']];
-  state.apoios.forEach(a => { const e = etapaPorId(a.etapa), base = [TIPOS[a.tipo].nome, a.nome, e ? e.nome : '', a.mun ? MUN[a.mun].n : '', a.mun ? MUN[a.mun].uf : '', a.contato, a.valor ? num(a.valor, 2) : '', a.tipo === 'hosp' ? noitesHotel(a) : '', previsto(a) ? num(previsto(a), 2) : ''];
-    const fim = [gastoTotal(a) ? num(gastoTotal(a), 2) : '', a.nota, a.lat, a.lon];
-    if ((a.gastos || []).length) a.gastos.forEach(g => L_.push([...base, fmtData(g.data), g.desc, num(g.valor, 2), ...fim]));
-    else L_.push([...base, '', '', '', ...fim]); });
-  baixar('hospedagens_paradas_e_gastos.csv', '\ufeff' + L_.map(csvLinha).join('\r\n'), 'text/csv;charset=utf-8');
+  const L_ = [['Tipo','Nome','Etapa','Município','UF','Endereço / telefone','Noites como pernoite','Observações','Latitude','Longitude']];
+  state.apoios.forEach(a => { const e = etapaPorId(a.etapa);
+    L_.push([TIPOS[a.tipo].nome, a.nome, e ? e.nome : '', a.mun ? MUN[a.mun].n : '', a.mun ? MUN[a.mun].uf : '', a.contato, a.tipo === 'hosp' ? noitesHotel(a) : '', a.nota, a.lat, a.lon]); });
+  baixar('hospedagens_e_paradas.csv', '\ufeff' + L_.map(csvLinha).join('\r\n'), 'text/csv;charset=utf-8');
 }
 function exportGeoJSON(){
   const feats = [];
@@ -2137,7 +2129,7 @@ function contManuais(){
   };
 }
 const ITENS_LIMPAR = [
-  ['apoios', c => `Hospedagens e paradas registradas (${c.apoios}), com os gastos lançados (${c.gastos})`],
+  ['apoios', c => `Hospedagens e paradas registradas (${c.apoios})`],
   ['visitas', c => `Visitas marcadas e anotações das visitas (${c.visitas})`],
   ['notas', c => `Observações das estações (${c.notas})`],
   ['fotos', c => `Fotos das estações (${c.fotos})`],
@@ -2148,7 +2140,7 @@ const ITENS_LIMPAR = [
 ];
 function abrirLimpar(){
   const c = contManuais();
-  document.getElementById('limparLista').innerHTML = ITENS_LIMPAR.map(([k, txt]) => { const n = k === 'apoios' ? c.apoios + c.gastos : c[k];
+  document.getElementById('limparLista').innerHTML = ITENS_LIMPAR.map(([k, txt]) => { const n = c[k];
     return `<label class="lim${n ? '' : ' vazio-l'}"><input type="checkbox" value="${k}" ${n ? 'checked' : 'disabled'}><span>${txt(c)}</span></label>`; }).join('');
   dLimpar.showModal();
 }
@@ -2454,7 +2446,7 @@ function resumoProj(p){
 function abrirProjetos(){ renderProjetos(); if (!dProj.open) dProj.showModal(); }
 function renderProjetos(){
   document.getElementById('dProjTit').textContent = 'Projetos';
-  projCorpo.innerHTML = `<p class="dica" style="margin:0">Cada projeto guarda o seu próprio cronograma: estações, etapas, visitas, anotações, fotos, hospedagens e gastos. Ao Salvar, todos os projetos vão juntos no arquivo.</p>
+  projCorpo.innerHTML = `<p class="dica" style="margin:0">Cada projeto guarda o seu próprio cronograma: estações, etapas, visitas, anotações, fotos e hospedagens. Ao Salvar, todos os projetos vão juntos no arquivo.</p>
     <div class="proj-lista">${IDX.lista.map(p => { const r = resumoProj(p), at = p.id === PJ_ID;
       return `<div class="proj${at ? ' atual' : ''}"><div class="proj-info"><b>${esc(p.nome)}${at ? ' <span class="tag">aberto</span>' : ''}</b>
         <span>${r.nEst} estações · ${r.nEt} ${r.nEt === 1 ? 'etapa' : 'etapas'} · ${r.vis} ${r.vis === 1 ? 'visitada' : 'visitadas'} · saída de ${esc(nomeBase(p))}</span>
@@ -2491,7 +2483,7 @@ projCorpo.addEventListener('click', async ev => {
       renderProjetos(); toast(`Criado "${meta.nome}".`); }
     return; }
   if (acao === 'excluir'){
-    if (!window.confirm(`Excluir o projeto "${p.nome}"? Etapas, visitas, anotações e gastos dele serão apagados deste ${APP ? 'celular' : 'navegador'}. Se quiser guardar uma cópia, use ${APP ? 'Exportar' : 'Salvar'} antes.`)) return;
+    if (!window.confirm(`Excluir o projeto "${p.nome}"? Etapas, visitas, anotações e hospedagens dele serão apagados deste ${APP ? 'celular' : 'navegador'}. Se quiser guardar uma cópia, use ${APP ? 'Exportar' : 'Salvar'} antes.`)) return;
     IDX.lista = IDX.lista.filter(x => x.id !== id); IDX.excluidos[id] = Date.now();
     lsDel(keyEstado(id)); lsDel(KEY_DADOS + id); ROTAS.del(id);
     if (id === PJ_ID){ IDX.atual = IDX.lista[0].id; lsSet(KEY_IDX, IDX); if (APP) gravarAppJa(); location.reload(); return; }

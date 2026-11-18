@@ -4,7 +4,7 @@
    - Hoje: o mapa mostra só o dia escolhido, com as letras do Google Maps; embaixo, a próxima parada com
      Navegar e Cheguei; puxando a folha para cima aparece o dia inteiro em linha do tempo.
    - Gravar rota: botão próprio sobre o mapa, com painel separado.
-   - Registros: visitas, fotos, gastos e rotas gravadas.  - Mais: projetos, etapas, relatórios, conta.
+   - Registros: visitas, fotos e rotas gravadas.  - Mais: projetos, etapas, relatórios, conta.
    ===================================================================================================== */
 if (CELULAR){
   document.documentElement.classList.add('celular');
@@ -199,7 +199,7 @@ if (CELULAR){
         <small>${g.continuar ? `Da sua posição · faltam ${g.faltam}` : `Saindo de ${esc(orig)} · todas em ordem`}</small></div>${IC.seta}</a>
         <p class="gm-tit">O que é cada letra no Google Maps</p>${leg(pt)}</div>`).join('');
     else if (ks.length && d < p.days.length - 1) h += `<button type="button" class="c-bt largo pri" data-c="dia" data-d="${d + 1}">Dia concluído · ir para o dia ${d + 2} ${IC.seta}</button>`;
-    h += `<div class="c-linha"><button type="button" class="c-bt" data-c="gasto">${svgI('posto')}<span>Gasto</span></button><button type="button" class="c-bt" data-c="tudo">${IC.camadas}<span>Ver tudo</span></button></div>`;
+    h += `<div class="c-linha"><button type="button" class="c-bt" data-c="tudo">${IC.camadas}<span>Ver tudo</span></button></div>`;
     h += pertoDeVoce(new Set(ks.map(k => e.stops[k].id)));
     return h;
   }
@@ -303,7 +303,7 @@ if (CELULAR){
   /* ================= REGISTROS ================= */
   function telaRegistros(){
     const seg = (k, n) => `<button type="button" data-c="seg" data-v="${k}" aria-pressed="${regSeg === k}">${n}</button>`;
-    let h = cab('Registros', '') + `<div class="c-seg">${seg('visitas', 'Visitas')}${seg('fotos', 'Fotos')}${seg('gastos', 'Gastos')}${seg('rotas', 'Rotas')}</div>`;
+    let h = cab('Registros', '') + `<div class="c-seg">${seg('visitas', 'Visitas')}${seg('fotos', 'Fotos')}${seg('rotas', 'Rotas')}</div>`;
     if (regSeg === 'visitas'){
       const v = state.etapas.flatMap(e => e.stops.filter(s => s.feito || s.relato || s.sit || (s.fotos || []).length).map(s => ({e, s})));
       h += v.length ? `<ul class="c-vis">${v.reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-c="estacao" data-id="${s.id}"><b>${esc(EST[s.id].nome)} ${tipoBadge(EST[s.id])}</b>
@@ -311,11 +311,6 @@ if (CELULAR){
     } else if (regSeg === 'fotos'){
       const fotos = todasFotos().sort((a, b) => (b.f.data || '').localeCompare(a.f.data || ''));
       h += fotos.length ? `<div class="c-galeria">${fotos.map(x => `<button type="button" data-ver-foto="${x.s.id}|${x.f.id}"><img data-foto="${x.f.id}" alt=""><span>${esc(EST[x.s.id].nome)}</span></button>`).join('')}</div><button type="button" class="c-bt largo" data-c="zip">${svgI('baixar')}<span>Baixar todas (ZIP com GPS)</span></button>` : vazio('As fotos tiradas nas visitas aparecem aqui.');
-    } else if (regSeg === 'gastos'){
-      const T = totaisGerais(), lst = [...state.apoios].sort((a, b) => (b._t || 0) - (a._t || 0));
-      h += `<div class="c-tot"><div><b>${fmtR(T.gasto)}</b><span>realizado</span></div><div><b>${fmtR(T.prev)}</b><span>previsto</span></div></div>
-        <button type="button" class="c-bt largo pri" data-c="gasto">${svgI('moeda')}<span>Registrar gasto ou abastecimento</span></button>` +
-        (lst.length ? `<ul class="c-trj">${lst.map(a => `<li><button type="button" class="c-it" data-c="apoio" data-id="${a.uid}"><b>${esc(a.nome)}</b><small>${TIPOS[a.tipo].nome}${a.mun ? ` · ${esc(MUN[a.mun].n)}` : ''}${gastoTotal(a) ? ` · ${fmtR(gastoTotal(a))}` : a.valor ? ` · previsto ${fmtR(previsto(a))}` : ''}</small></button><a class="c-red" href="${gmIr([a.lat, a.lon])}" target="_blank" rel="noopener" aria-label="Navegar">${IC.gm}</a></li>`).join('')}</ul>` : vazio('Nada registrado ainda.'));
     } else {
       const tot = GRV.lista.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
       h += `<div class="c-tot"><div><b>${num(tot.km, 1)}</b><span>km gravados</span></div><div><b>${GRV.lista.length}</b><span>rotas</span></div></div>
@@ -352,15 +347,11 @@ if (CELULAR){
   }
   function telaRelatorios(){
     const it = (a, t, s) => `<button type="button" data-acao="${a}"><div><b>${t}</b>${s ? `<small>${s}</small>` : ''}</div></button>`;
-    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('crono', 'Relatório completo', 'Cronograma, visitas, fotos, gastos e rotas. Imprimir ou PDF.')}${it('gastos', 'Relatório de gastos', '')}${it('tabela', 'Tabela das estações', '')}</div>
-      <p class="c-rot">Baixar</p><div class="c-menu">${it('csv', 'Planilha do roteiro (CSV)', '')}${it('csvApoio', 'Hospedagens e gastos (CSV)', '')}${it('kml', 'Estações (KML, Google Earth)', '')}${it('fotos-zip', 'Fotos (ZIP)', '')}<button type="button" data-c="trj-todas"><div><b>Rotas gravadas (GPX)</b></div></button><button type="button" data-c="copia"><div><b>Cópia de segurança (HTML)</b><small>Abre no computador mesmo sem o app</small></div></button></div>
+    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('crono', 'Relatório completo', 'Cronograma, visitas, fotos e rotas. Imprimir ou PDF.')}${it('tabela', 'Tabela das estações', '')}</div>
+      <p class="c-rot">Baixar</p><div class="c-menu">${it('csv', 'Planilha do roteiro (CSV)', '')}${it('csvApoio', 'Hospedagens e paradas (CSV)', '')}${it('kml', 'Estações (KML, Google Earth)', '')}${it('fotos-zip', 'Fotos (ZIP)', '')}<button type="button" data-c="trj-todas"><div><b>Rotas gravadas (GPX)</b></div></button><button type="button" data-c="copia"><div><b>Cópia de segurança (HTML)</b><small>Abre no computador mesmo sem o app</small></div></button></div>
       <p class="c-rot">Trazer dados</p><div class="c-menu">${it('abrir', 'Importar de arquivo salvo antes', 'HTML ou .json da versão antiga')}</div>`;
   }
-  function telaGasto(){
-    const op = (t, ico, n) => `<button type="button" class="c-tipo" data-c="gasto-tipo" data-t="${t}">${svgI(ico)}<span>${n}</span></button>`;
-    return cab('Registrar', GPS.pos ? 'Na sua posição (GPS)' : 'No centro do mapa · ligue o GPS para usar a sua posição') +
-      `<div class="c-tipos">${op('comb', 'posto', 'Abastecimento')}${op('alim', 'moeda', 'Refeição')}${op('hosp', 'cama', 'Hospedagem')}${op('outro', 'moeda', 'Outro gasto')}</div>`;
-  }
+
   function telaCamadas(){
     const f = state.fundo || 'ruas', op = (k, n, d) => `<button type="button" data-c="fundo" data-id="${k}" aria-pressed="${f === k}"><b>${n}</b><small>${d}</small></button>`;
     return cab('Mapa', '') + `<div class="c-fundos">${temGoogle() ? op('gm', 'Google Maps', 'Ruas do Google') + op('gsat', 'Google Satélite', 'Igual ao Google Earth') : ''}${op('sat', 'Satélite', 'Imagem real com estradas')}${op('ruas', 'Estradas', 'Rodovias e cidades')}${op('ter', 'Terreno', 'Relevo')}${op('nenhum', 'Sem internet', 'Mais leve: limites e rotas guardadas')}</div>
@@ -370,7 +361,7 @@ if (CELULAR){
   /* ---------- desenhar ---------- */
   function desenhar(){
     const v = atual(); salvarNota();
-    const T = {hoje:telaHoje, estacoes:telaEstacoes, registros:telaRegistros, mais:telaMais, dias:telaDias, gravar:telaGravar, etapas:telaEtapas, relatorios:telaRelatorios, gasto:telaGasto, camadas:telaCamadas,
+    const T = {hoje:telaHoje, estacoes:telaEstacoes, registros:telaRegistros, mais:telaMais, dias:telaDias, gravar:telaGravar, etapas:telaEtapas, relatorios:telaRelatorios, camadas:telaCamadas,
       equipe:() => cab('Equipe e acesso', '') + '<div id="cEq" class="c-eq"></div>'};
     corpo.innerHTML = v.v === 'estacao' ? telaVisita(v.id) : v.v === 'etapa' ? telaEtapa(v.id) : (T[v.v] || telaHoje)();
     hidratar(corpo);
@@ -421,8 +412,6 @@ if (CELULAR){
     else if (c === 'etapa-hoje'){ campoEtapaId = id; diaHoje = null; modoTudo = false; irTab('hoje'); }
     else if (c === 'tudo'){ verTudo(); aba = 'hoje'; pilha = []; marcaNav(); desenhar(); altura('media'); }
     else if (c === 'apoio-novo'){ const m = b.dataset.mun, e = etapaCampo(); abrirFormApoio({tipo:b.dataset.t, mun:m, lat:MUN[m].lat, lon:MUN[m].lon, etapa: e ? e.id : ''}); }
-    else if (c === 'gasto') abrir({v:'gasto'}, 'media');
-    else if (c === 'gasto-tipo'){ voltar(); registrarApoioAqui(b.dataset.t); }
     else if (c === 'gravar'){ iniciarGravacao(); desenhar(); }
     else if (c === 'pausar'){ pausarGravacao(); desenhar(); }
     else if (c === 'continuar'){ continuarGravacao(); desenhar(); }

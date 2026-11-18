@@ -382,7 +382,7 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
 .d-dia.ok i{color:#07523A}
 .d-dia.sel{border-color:var(--c);box-shadow:inset 0 0 0 2px var(--c)}
 /* registros */
-.c-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:4px;border-radius:14px;background:var(--papel);margin-bottom:12px}
+.c-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:var(--papel);margin-bottom:12px}
 .c-seg button{height:40px;border:0;border-radius:10px;background:none;font:600 14px/1 var(--corpo);color:var(--cinza)}
 .c-seg [aria-pressed=true]{background:#fff;color:var(--tinta);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .c-vis{list-style:none;margin:0;padding:0;display:grid;gap:8px}
