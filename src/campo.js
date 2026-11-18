@@ -10,6 +10,7 @@ const CELULAR = matchMedia('(max-width:760px)').matches;
 matchMedia('(max-width:760px)').addEventListener('change', ev => { if (ev.matches !== CELULAR && !GRV.t) location.reload(); });
 document.documentElement.classList.add('pwa');
 const ICO = {
+  lapis:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
   mapa:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
   roteiro:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.3"/><circle cx="3.5" cy="12" r="1.3"/><circle cx="3.5" cy="18" r="1.3"/>',
   campo:'<path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/>',
@@ -198,16 +199,88 @@ function iniciarGravacao(){
 }
 function pausarGravacao(){ const t = GRV.t; if (!t || GRV.pausa) return; if (NATIVO){ puxarNativo(); try { window.AndroidApp.gpsParar(); } catch(e){} } t.seg += (Date.now() - t.retomado) / 1000; t.retomado = null; GRV.pausa = true; salvarGravacao(true); atualizarGravacaoUI(); }
 function continuarGravacao(){ const t = GRV.t; if (!t) return; if (NATIVO){ try { window.AndroidApp.gpsIniciar(false); } catch(e){} } GRV.pausa = false; t.retomado = Date.now(); if (!GPS.on) gpsLigar(); atualizarGravacaoUI(); }
-async function encerrarGravacao(){
+/* ---- resumo da rota: onde começou e terminou, tempos e velocidades ---- */
+function pontoPerto(lat, lon){
+  let best = null, bd = 1e9; const q = [lat, lon];
+  for (const id in EST){ const d = havLL(q, ll(id)); if (d < bd){ bd = d; best = id; } }
+  const m = munEm(lat, lon), cid = m && MUN[m] ? MUN[m].n : '';
+  if (best && bd <= 2) return `${EST[best].nome}${bd > .15 ? ` (a ${fmtDist(bd)})` : ''}${cid && !EST[best].nome.includes(cid) ? ' · ' + cid : ''}`;
+  return cid || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+}
+const RES_TRJ = new WeakMap();
+function resumoTrj(t){
+  const c = RES_TRJ.get(t); if (c && c.n === t.pts.length) return c;
+  const a = t.pts[0], b = t.pts[t.pts.length - 1], lac = t.lac || [];
+  let mov = 0, vmax = 0;
+  for (let i = 1; i < t.pts.length; i++){
+    const u = t.pts[i - 1], q = t.pts[i], dt = q[2] - u[2]; if (dt <= 0) continue;
+    if (lac.some(l => l[0] === u[2] && l[1] === q[2])){ mov += dt; continue; }
+    if (dt > 120) continue;
+    const v = kmTrecho(u, q) / (dt / 3600);
+    if (v >= 3){ mov += dt; if (dt >= 4 && v < 180 && v > vmax) vmax = v; }
+  }
+  mov = Math.min(mov, t.seg || mov);
+  const r = {n:t.pts.length, de: t.de || (a ? pontoPerto(a[0], a[1]) : '–'), ate: t.ate || (b ? pontoPerto(b[0], b[1]) : '–'), mov, parado:Math.max(0, (t.seg || 0) - mov), vmed: mov > 60 ? t.km / (mov / 3600) : 0, vmax};
+  RES_TRJ.set(t, r); return r;
+}
+const tituloTrj = t => t.titulo || `${resumoTrj(t).de.split(' (')[0].split(' · ')[0]} → ${resumoTrj(t).ate.split(' (')[0].split(' · ')[0]}`;
+/* Janela de encerrar/renomear: mostra os dados da rota e pede um nome (opcional). Devolve o nome, '' (sem nome) ou null (cancelou). */
+function pedirNomeTrj(t, novo){
+  return new Promise(ok => {
+    const r = resumoTrj(t), d = document.createElement('dialog'); d.className = 'dlg-trj';
+    const fim = t.fim || new Date().toISOString();
+    d.innerHTML = `<form method="dialog"><h2>${novo ? 'Salvar a rota' : 'Dados da rota'}</h2>
+      <label class="dt-nome"><span>Nome da rota</span><input name="n" maxlength="80" autocomplete="off" placeholder="${esc(tituloTrj({...t, titulo:''}))}" value="${esc(t.titulo || '')}"></label>
+      <p class="dt-dica">Opcional. Os dados abaixo ficam salvos junto, com ou sem nome.</p>
+      ${fichaTrj(t, r, fim)}
+      <div class="dt-bts"><button type="button" class="btn" value="x">${novo ? 'Continuar gravando' : 'Cancelar'}</button><button class="btn primario" value="ok">${novo ? 'Salvar rota' : 'Salvar'}</button></div></form>`;
+    document.body.appendChild(d);
+    const fecha = v => { d.close(); d.remove(); ok(v); };
+    d.querySelector('[value=x]').onclick = () => fecha(null);
+    d.addEventListener('cancel', ev => { ev.preventDefault(); fecha(null); });
+    d.querySelector('form').onsubmit = ev => { ev.preventDefault(); fecha(d.querySelector('input').value.trim()); };
+    d.showModal();
+  });
+}
+function fichaTrj(t, r, fim){
+  const e = t.etapa && etapaPorId(t.etapa), dia = new Date(t.inicio).toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+  const L1 = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+  return `<dl class="ficha-trj">
+    ${L1('Início', `${esc(fmtHoraISO(t.inicio))} · perto de <b>${esc(r.de)}</b>`)}
+    ${L1('Fim', `${esc(fmtHoraISO(fim))} · perto de <b>${esc(r.ate)}</b>`)}
+    ${L1('Data', esc(dia))}
+    ${L1('Distância', `<b>${num(t.km, t.km < 10 ? 2 : 1)} km</b>`)}
+    ${L1('Tempo gravando', fmtDur(t.seg))}
+    ${L1('Em movimento', `${fmtDur(r.mov)} · parado ${fmtDur(r.parado)}`)}
+    ${L1('Velocidade', r.vmed ? `média ${Math.round(r.vmed)} km/h · máxima ${Math.round(r.vmax)} km/h` : '–')}
+    ${e ? L1('Etapa', esc(e.nome)) : ''}${t.nome || t.por ? L1('Gravado por', esc(t.nome || t.por)) : ''}
+    ${(t.lac || []).length ? L1('Sem GPS', `${t.lac.length} trecho${t.lac.length > 1 ? 's' : ''} completado${t.lac.length > 1 ? 's' : ''} pela estrada (tracejado)`) : ''}</dl>`;
+}
+async function renomearTrajeto(id){
+  const t = GRV.lista.find(x => x.id === id); if (!t) return;
+  const n = await pedirNomeTrj(t, false); if (n === null) return;
+  t.titulo = n; t.mod = Date.now(); try { await TRJDB.put(t.id, t); } catch(e){} NUV.sujo(); await carregarTrajetos(); toast('Nome da rota salvo.');
+}
+async function encerrarComNome(){
+  const t = GRV.t; if (!t) return false;
+  if (NATIVO) puxarNativo();
+  const seg = t.seg + (GRV.pausa || !t.retomado ? 0 : (Date.now() - t.retomado) / 1000);
+  if (t.pts.length < 2){ if (!window.confirm('O GPS ainda não registrou deslocamento. Encerrar assim mesmo?')) return false; await encerrarGravacao(''); return true; }
+  const n = await pedirNomeTrj({...t, seg}, true); if (n === null) return false;
+  await encerrarGravacao(n); return true;
+}
+async function encerrarGravacao(titulo){
   const t = GRV.t; if (!t) return;
   if (NATIVO){ puxarNativo(); try { window.AndroidApp.gpsParar(); window.AndroidApp.gpsLimpar(); } catch(e){} }
+  if (titulo) t.titulo = titulo;
+  if (t.pts.length > 1){ const a = t.pts[0], b = t.pts[t.pts.length - 1]; t.de = pontoPerto(a[0], a[1]); t.ate = pontoPerto(b[0], b[1]); }
   if (!GRV.pausa) t.seg += (Date.now() - t.retomado) / 1000;
   t.fim = new Date().toISOString(); t.gravando = false; t.retomado = null; t.mod = Date.now();
   GRV.t = null; GRV.pausa = false;
   try { localStorage.removeItem('rc-gravando'); } catch(e){}
   if (t.pts.length < 2){ try { await TRJDB.del(t.id); } catch(e){} toast('Gravação encerrada sem trajeto (o GPS não registrou deslocamento).'); }
-  else { try { await TRJDB.put(t.id, t); } catch(e){} toast(`Rota gravada: ${num(t.km, 1)} km em ${fmtDur(t.seg)}. ${EM_NUVEM ? 'Ela vai para a nuvem da equipe.' : 'Guardada neste aparelho.'}`); NUV.sujo(); }
-  atualizarGravacaoUI(); carregarTrajetos();
+  else { try { await TRJDB.put(t.id, t); } catch(e){} toast(`Rota "${tituloTrj(t)}" salva: ${num(t.km, 1)} km em ${fmtDur(t.seg)}. ${EM_NUVEM ? 'Ela vai para a nuvem da equipe.' : 'Guardada neste aparelho.'}`); NUV.sujo(); }
+  atualizarGravacaoUI(); await carregarTrajetos();
 }
 window.__gpsPonto = p => { if (NATIVO) return; addPonto(p.coords.latitude, p.coords.longitude, Date.now(), p.coords.accuracy || 999); };
 function addPonto(lat, lon, ms, acc){
@@ -266,12 +339,12 @@ const xmlE = s => String(s ?? '').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt
 function gpxDe(lista){
   return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Roteiro de Campo" xmlns="http://www.topografix.com/GPX/1/1">\n` +
     lista.map(t => { const t0 = Date.parse(t.inicio);
-      return `<trk><name>${xmlE(`Rota ${fmtDataHora(t.inicio)} (${num(t.km, 1)} km)`)}</name><desc>${xmlE([t.nome || t.por, t.etapa && etapaPorId(t.etapa) && etapaPorId(t.etapa).nome, num(t.km, 1) + ' km', fmtDur(t.seg)].filter(Boolean).join(' · '))}</desc><trkseg>` +
+      return `<trk><name>${xmlE(`${tituloTrj(t)} · ${fmtDataHora(t.inicio)} (${num(t.km, 1)} km)`)}</name><desc>${xmlE([`De ${resumoTrj(t).de} a ${resumoTrj(t).ate}`, t.nome || t.por, t.etapa && etapaPorId(t.etapa) && etapaPorId(t.etapa).nome, num(t.km, 1) + ' km', fmtDur(t.seg)].filter(Boolean).join(' · '))}</desc><trkseg>` +
         t.pts.map(p => `<trkpt lat="${p[0]}" lon="${p[1]}"><time>${new Date(t0 + p[2] * 1000).toISOString()}</time></trkpt>`).join('') + '</trkseg></trk>'; }).join('\n') + '\n</gpx>';
 }
 function kmlDe(lista){
   return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Rotas percorridas</name><Style id="r"><LineStyle><color>ff0c41c2</color><width>4</width></LineStyle></Style>` +
-    lista.map(t => `<Placemark><name>${xmlE(`Rota ${fmtDataHora(t.inicio)}`)}</name><description>${xmlE(`${num(t.km, 1)} km, ${fmtDur(t.seg)} gravando${t.nome ? ', ' + t.nome : ''}`)}</description><styleUrl>#r</styleUrl><LineString><tessellate>1</tessellate><coordinates>${t.pts.map(p => `${p[1]},${p[0]},0`).join(' ')}</coordinates></LineString></Placemark>`).join('') + '</Document></kml>';
+    lista.map(t => `<Placemark><name>${xmlE(`${tituloTrj(t)} · ${fmtDataHora(t.inicio)}`)}</name><description>${xmlE(`De ${resumoTrj(t).de} a ${resumoTrj(t).ate}. ${num(t.km, 1)} km, ${fmtDur(t.seg)} gravando${t.nome ? ', ' + t.nome : ''}`)}</description><styleUrl>#r</styleUrl><LineString><tessellate>1</tessellate><coordinates>${t.pts.map(p => `${p[1]},${p[0]},0`).join(' ')}</coordinates></LineString></Placemark>`).join('') + '</Document></kml>';
 }
 function baixarTrajetos(fmt, id){
   const lista = id ? GRV.lista.filter(t => t.id === id) : GRV.lista;
@@ -283,9 +356,9 @@ function secaoTrajetosRel(){
   if (!GRV.lista.length) return '';
   const tot = GRV.lista.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
   return `<h3 class="rel-etapa" style="--c:${COR_TRJ}">Rotas percorridas<span>gravadas pelo GPS · ${GRV.lista.length} ${GRV.lista.length === 1 ? 'rota' : 'rotas'} · ${num(tot.km, 1)} km · ${fmtDur(tot.seg)}</span></h3>
-    <table class="rel"><caption style="--c:${COR_TRJ}">Trajetos registrados em campo</caption><thead><tr><th>Data</th><th>Horário</th><th>Etapa</th><th>Km percorridos</th><th>Tempo gravando</th><th>Gravado por</th></tr></thead><tbody>` +
-    [...GRV.lista].reverse().map(t => `<tr><td class="nw">${esc(new Date(t.inicio).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', year:'numeric'}))}</td><td class="nw">${esc(fmtHoraISO(t.inicio))}–${esc(fmtHoraISO(t.fim))}</td><td>${t.etapa && etapaPorId(t.etapa) ? esc(etapaPorId(t.etapa).nome) : '–'}</td><td class="n">${num(t.km, 1)}</td><td class="n">${fmtDur(t.seg)}</td><td>${esc(t.nome || t.por || '–')}</td></tr>`).join('') +
-    `</tbody><tfoot><tr><td colspan="3">Total</td><td class="n">${num(tot.km, 1)}</td><td class="n">${fmtDur(tot.seg)}</td><td></td></tr></tfoot></table>`;
+    <table class="rel"><caption style="--c:${COR_TRJ}">Trajetos registrados em campo</caption><thead><tr><th>Rota</th><th>Data</th><th>Horário</th><th>Início perto de</th><th>Fim perto de</th><th>Etapa</th><th>Km</th><th>Tempo gravando</th><th>Em movimento</th><th>Vel. média</th><th>Gravado por</th></tr></thead><tbody>` +
+    [...GRV.lista].reverse().map(t => { const r = resumoTrj(t); return `<tr><td><b>${esc(tituloTrj(t))}</b></td><td class="nw">${esc(new Date(t.inicio).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', year:'numeric'}))}</td><td class="nw">${esc(fmtHoraISO(t.inicio))}–${esc(fmtHoraISO(t.fim))}</td><td>${esc(r.de)}</td><td>${esc(r.ate)}</td><td>${t.etapa && etapaPorId(t.etapa) ? esc(etapaPorId(t.etapa).nome) : '–'}</td><td class="n">${num(t.km, 1)}</td><td class="n">${fmtDur(t.seg)}</td><td class="n">${fmtDur(r.mov)}</td><td class="n">${r.vmed ? Math.round(r.vmed) + ' km/h' : '–'}</td><td>${esc(t.nome || t.por || '–')}</td></tr>`; }).join('') +
+    `</tbody><tfoot><tr><td colspan="7">Total</td><td class="n">${num(tot.km, 1)}</td><td class="n">${fmtDur(tot.seg)}</td><td colspan="3"></td></tr></tfoot></table>`;
 }
 
 /* ---------------- tela "Em campo" ---------------- */
@@ -369,8 +442,8 @@ function htmlRegistros(){
       <div><b>${fotos.length}</b><span>fotos</span></div>
       <div><b>${fmtR(T.gasto)}</b><span>gastos lançados</span></div></div>
     <section class="rg-sec"><div class="rg-t"><h3>Rotas percorridas</h3><label class="rg-chk"><input type="checkbox" data-rg="mostrar" ${GRV.mostrar ? 'checked' : ''}> no mapa</label></div>
-      ${GRV.lista.length ? `<ul class="rg-trj">${GRV.lista.map(t => `<li><div><b>${esc(fmtDataHora(t.inicio))}–${esc(fmtHoraISO(t.fim))}</b><small>${num(t.km, 1)} km · ${fmtDur(t.seg)}${t.etapa && etapaPorId(t.etapa) ? ` · ${esc(etapaPorId(t.etapa).nome)}` : ''}${t.nome ? ` · ${esc(t.nome)}` : ''}</small></div>
-          <div class="rg-bt"><button type="button" class="btn" data-rg="ver" data-id="${t.id}">Ver</button><button type="button" class="btn" data-rg="gpx" data-id="${t.id}">GPX</button><button type="button" class="btn qd perigo" data-rg="excluir" data-id="${t.id}" aria-label="Excluir rota">${svgI('lixo')}</button></div></li>`).join('')}</ul>
+      ${GRV.lista.length ? `<ul class="rg-trj">${GRV.lista.map(t => `<li><div><b>${esc(tituloTrj(t))}</b><small>${esc(fmtDataHora(t.inicio))}–${esc(fmtHoraISO(t.fim))} · ${num(t.km, 1)} km · ${fmtDur(t.seg)}${t.etapa && etapaPorId(t.etapa) ? ` · ${esc(etapaPorId(t.etapa).nome)}` : ''}${t.nome ? ` · ${esc(t.nome)}` : ''}</small></div>
+          <div class="rg-bt"><button type="button" class="btn" data-rg="ver" data-id="${t.id}">Ver</button><button type="button" class="btn" data-rg="gpx" data-id="${t.id}">GPX</button><button type="button" class="btn" data-rg="nome" data-id="${t.id}">Detalhes</button><button type="button" class="btn qd perigo" data-rg="excluir" data-id="${t.id}" aria-label="Excluir rota">${svgI('lixo')}</button></div></li>`).join('')}</ul>
         <div class="rg-baixar"><button type="button" class="btn" data-rg="importar">${svgI('baixar')}<span>Importar rota (GPX)</span></button><button type="button" class="btn" data-rg="todas-gpx">${svgI('baixar')}<span>Todas (GPX)</span></button><button type="button" class="btn" data-rg="todas-kml">${svgI('baixar')}<span>Todas (KML, Google Earth)</span></button></div>`
         : `<div class="rg-baixar"><button type="button" class="btn" data-rg="importar">${svgI('baixar')}<span>Importar rota (GPX)</span></button></div><p class="vazio">Nenhuma rota gravada ainda. Em "Em campo", toque em <b>Gravar rota</b> ao sair: o caminho feito, os km e o tempo ficam registrados ${EM_NUVEM ? 'no app e na nuvem da equipe' : 'neste aparelho'}. Para gravar com a tela apagada, use um app de GPS em segundo plano (ex.: GPSLogger) e importe o arquivo GPX aqui.</p>`}</section>
     <section class="rg-sec"><div class="rg-t"><h3>Visitas</h3></div>
@@ -434,7 +507,7 @@ telaCorpo.addEventListener('click', ev => {
   else if (cp === 'gravar') iniciarGravacao();
   else if (cp === 'pausar') pausarGravacao();
   else if (cp === 'continuar') continuarGravacao();
-  else if (cp === 'encerrar'){ if (window.confirm('Encerrar a gravação desta rota?')) encerrarGravacao(); }
+  else if (cp === 'encerrar') encerrarComNome();
   else if (cp === 'etapa'){ campoEtapaId = id; campoDia = null; campoAlvo = null; desenharTela(); }
   else if (cp === 'dia'){ campoDia = +b.dataset.d; campoAlvo = null; desenharTela(); const e = etapaCampo(); if (e && P[e.id] && P[e.id].days[campoDia]){ if (state.aba !== e.id){ state.aba = e.id; render(); } fitDay(campoDia); } }
   else if (cp === 'alvo'){ campoAlvo = id; campoNota = null; desenharTela(); verPonto(ll(id), Math.max(map.getZoom(), 12)); }
@@ -447,6 +520,7 @@ telaCorpo.addEventListener('click', ev => {
   else if (cp === 'apoio') registrarApoioAqui(b.dataset.t);
   /* Registros */
   const rg = b.dataset.rg;
+  if (rg === 'nome') renomearTrajeto(id);
   if (rg === 'ver'){ const t = GRV.lista.find(x => x.id === id); if (t){ if (!GRV.mostrar){ GRV.mostrar = true; desenharTrajetos(); } if (mobile()) irAba('mapa'); map.fitBounds(L.latLngBounds(t.pts.map(p => [p[0], p[1]])), {padding:[30, 30]}); } }
   else if (rg === 'gpx') baixarTrajetos('gpx', id);
   else if (rg === 'importar') entradaGPX.click();

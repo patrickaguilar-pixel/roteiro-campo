@@ -142,7 +142,7 @@ if (CELULAR){
     const tags = (s.feito ? `<span class="e-tag ok">Visitada${s.feito ? ' ' + esc(s.feito.split(',')[0]) : ''}</span>` : o.prox ? '<span class="e-tag prox">Próxima</span>' : '') +
       (s.sit ? `<span class="c-sit s-${s.sit}">${SITUACOES[s.sit]}</span>` : '') + ((s.fotos || []).length ? `<span class="e-tag">${s.fotos.length} foto${s.fotos.length > 1 ? 's' : ''}</span>` : '');
     return `<li class="e-li${s.feito ? ' feito' : ''}${o.prox ? ' prox' : ''}" style="--c:${o.cor || '#5E6B66'}">
-      <span class="e-le">${s.feito ? svgI('ok') : (o.letra != null ? o.letra : '')}</span>
+      ${o.gm ? `<span class="e-pin${s.feito ? ' ok' : ''}" title="Letra no Google Maps"><span>${o.letra}</span></span>` : `<span class="e-le">${s.feito ? svgI('ok') : (o.letra != null ? o.letra : '')}</span>`}
       <button type="button" class="e-it" data-c="estacao" data-id="${id}"><b>${esc(est.nome)} ${tipoBadge(est)}</b><small>${info}</small>${tags ? `<span class="e-tags">${tags}</span>` : ''}</button>
       <a class="e-bt" href="${linkNav(id)}" target="_blank" rel="noopener" aria-label="Navegar até ${esc(est.nome)}">${IC.gm}</a>
       ${w && w.e ? `<button type="button" class="e-bt chk" data-c="${s.feito ? 'desmarcar' : 'cheguei'}" data-id="${id}" aria-pressed="${!!s.feito}" aria-label="${s.feito ? 'Desmarcar visita' : 'Cheguei: marcar visitada'}">${svgI('ok')}</button>` : ''}</li>`;
@@ -153,7 +153,12 @@ if (CELULAR){
   marcadorEst = (id, rotulo, cor, extra = '') => {
     if (focoCel && state.aba === focoCel.eid){
       const e = etapaPorId(focoCel.eid), w = LOC[id], p = e && P[e.id];
-      if (w && w.e === e && p && p.info[w.k] && p.info[w.k].d === focoCel.d){ const g = gmPlano(e, p.days[focoCel.d]).letra[w.k]; if (g) rotulo = g.l; extra += ' hoje'; }
+      if (w && w.e === e && p && p.info[w.k] && p.info[w.k].d === focoCel.d){
+        const g = gmPlano(e, p.days[focoCel.d]).letra[w.k], m = _marcadorEst(id, g ? g.l : rotulo, cor, extra + ' hoje');
+        /* alfinete igual ao do Google Maps, com a mesma letra */
+        if (g){ m.setIcon(L.divIcon({className:'', iconSize:[34, 34], iconAnchor:[17, 41], html:`<div class="gpin${w.s.feito ? ' ok' : ''}"><span>${g.l}</span></div>`})); m.setZIndexOffset(3000); }
+        return m;
+      }
     }
     return _marcadorEst(id, rotulo, cor, extra);
   };
@@ -182,14 +187,17 @@ if (CELULAR){
         <button type="button" class="k-tit" data-c="dias"><small>${esc(e.nome)}</small><b>Dia ${d + 1}${D.data ? ' · ' + esc(fmtDS(D.data)) : ` de ${p.days.length}`}${IC.baixo}</b></button>
         <button type="button" class="k-seta" data-c="dia" data-d="${d + 1}" ${d < p.days.length - 1 ? '' : 'disabled'} aria-label="Próximo dia">${IC.seta}</button></div>
       <div class="k-prog" style="--c:${e.cor}"><i><i style="width:${ks.length ? Math.round(feitos / ks.length * 100) : 0}%"></i></i><span><b>${feitos}/${ks.length}</b> visitadas · ${fmtKm(D.km)} km · ${fmtHora(D.saida)}–${fmtHora(D.chegada)}</span></div>`;
-    const lis = ks.map(k => { const inf = p.info[k] || {}, le = g.letra[k]; return linhaEst(e.stops[k].id, {letra: le ? le.l : k + 1, hora: fmtHora(inf.cheg), cor: e.cor, prox: k === proxK}); });
+    const lis = ks.map(k => { const inf = p.info[k] || {}, le = g.letra[k]; return linhaEst(e.stops[k].id, {letra: le ? le.l : k + 1, gm: !!le, hora: fmtHora(inf.cheg), cor: e.cor, prox: k === proxK}); });
     h += `<ul class="e-lista k-lista" data-peek>${lis.slice(0, 2).join('')}</ul>`;
     if (lis.length > 2) h += `<ul class="e-lista k-lista">${lis.slice(2).join('')}</ul>`;
     if (!ks.length) h += vazio('Dia sem estações.');
     h += `<p class="k-fim">${svgI('cama')}<span>${D.to === BH ? `Volta a Belo Horizonte · ${fmtHora(D.chegada)}` : `Pernoite em <b>${esc(dest)}</b>${hosp ? ` · ${esc(hosp.nome)}` : ''}`}</span>
       ${D.to !== BH && !hosp ? `<button type="button" class="tl-link" data-c="apoio-novo" data-t="hosp" data-mun="${D.to}">+ hospedagem</button>` : ''}</p>`;
-    if (pend.length) h += g.partes.map((pt, i) => `<a class="h-gm" href="${pt.url}" target="_blank" rel="noopener">${IC.gm}<div><b>${g.continuar ? 'Continuar o dia no Google Maps' : 'Rota do dia no Google Maps'}${g.partes.length > 1 ? ` · ${i + 1}/${g.partes.length}` : ''}</b>
-        <small>${g.continuar ? `Da sua posição · faltam ${g.faltam}` : `Saindo de ${esc(orig)} · todas em ordem`} · mesmas letras do mapa</small></div>${IC.seta}</a>`).join('');
+    const leg = pt => `<ol class="gm-leg">${pt.legenda.map(({l, x}) => { const st = x.k !== undefined ? e.stops[x.k] : null;
+        return `<li class="${st && st.feito ? 'ok' : ''}"><span class="e-pin${x.ini || x.fim ? ' ext' : ''}${st && st.feito ? ' ok' : ''}"><span>${l}</span></span><b>${esc(st ? EST[st.id].nome : x.rot)}</b><small>${x.ini ? 'saída' : x.fim ? 'chegada' : esc(estMun(EST[st.id]))}</small></li>`; }).join('')}</ol>`;
+    if (pend.length) h += g.partes.map((pt, i) => `<div class="gm-card"><a class="h-gm" href="${pt.url}" target="_blank" rel="noopener">${IC.gm}<div><b>${g.continuar ? 'Continuar o dia no Google Maps' : 'Rota do dia no Google Maps'}${g.partes.length > 1 ? ` · parte ${i + 1} de ${g.partes.length}` : ''}</b>
+        <small>${g.continuar ? `Da sua posição · faltam ${g.faltam}` : `Saindo de ${esc(orig)} · todas em ordem`}</small></div>${IC.seta}</a>
+        <p class="gm-tit">O que é cada letra no Google Maps</p>${leg(pt)}</div>`).join('');
     else if (ks.length && d < p.days.length - 1) h += `<button type="button" class="c-bt largo pri" data-c="dia" data-d="${d + 1}">Dia concluído · ir para o dia ${d + 2} ${IC.seta}</button>`;
     h += `<div class="c-linha"><button type="button" class="c-bt" data-c="gasto">${svgI('posto')}<span>Gasto</span></button><button type="button" class="c-bt" data-c="tudo">${IC.camadas}<span>Ver tudo</span></button></div>`;
     h += pertoDeVoce(new Set(ks.map(k => e.stops[k].id)));
@@ -273,8 +281,11 @@ if (CELULAR){
   }
   /* ================= GRAVAR ROTA ================= */
   function numerosGrav(){ const t = GRV.t; if (!t) return {km:0, seg:0}; return {km:t.km, seg:t.seg + (GRV.pausa || !t.retomado ? 0 : (Date.now() - t.retomado) / 1000)}; }
-  const linhaTrj = t => `<li><button type="button" class="c-it" data-c="trj-ver" data-id="${t.id}"><b>${esc(fmtDataHora(t.inicio))} – ${esc(fmtHoraISO(t.fim))}</b><small>${num(t.km, 1)} km · ${fmtDur(t.seg)}${t.etapa && etapaPorId(t.etapa) ? ` · ${esc(etapaPorId(t.etapa).nome)}` : ''}${t.nome ? ` · ${esc(t.nome)}` : ''}${t.importado ? ' · importada' : ''}</small></button>
-    <button type="button" class="c-red" data-c="trj-gpx" data-id="${t.id}" aria-label="Baixar GPX">${svgI('baixar')}</button><button type="button" class="c-red perigo" data-c="trj-ex" data-id="${t.id}" aria-label="Excluir">${svgI('lixo')}</button></li>`;
+  const linhaTrj = t => { const r = resumoTrj(t);
+    return `<li class="trj2"><button type="button" class="c-it" data-c="trj-ver" data-id="${t.id}"><b>${esc(tituloTrj(t))}</b>
+      <small>${esc(fmtDataHora(t.inicio))}–${esc(fmtHoraISO(t.fim))} · <b>${num(t.km, 1)} km</b> · ${fmtDur(t.seg)}</small>
+      <small class="trj-de">De ${esc(r.de)}<br>até ${esc(r.ate)}</small></button>
+      <div class="trj-bts"><button type="button" class="c-red" data-c="trj-nome" data-id="${t.id}" aria-label="Dados e nome">${svgI('lapis')}</button><button type="button" class="c-red" data-c="trj-gpx" data-id="${t.id}" aria-label="Baixar GPX">${svgI('baixar')}</button><button type="button" class="c-red perigo" data-c="trj-ex" data-id="${t.id}" aria-label="Excluir">${svgI('lixo')}</button></div></li>`; };
   function telaGravar(){
     const hojeD = new Date().toDateString(), deHoje = GRV.lista.filter(t => new Date(t.inicio).toDateString() === hojeD);
     const v = GPS.pos && GPS.pos.coords.speed != null && GPS.pos.coords.speed > .5 ? Math.round(GPS.pos.coords.speed * 3.6) : 0;
@@ -415,7 +426,8 @@ if (CELULAR){
     else if (c === 'gravar'){ iniciarGravacao(); desenhar(); }
     else if (c === 'pausar'){ pausarGravacao(); desenhar(); }
     else if (c === 'continuar'){ continuarGravacao(); desenhar(); }
-    else if (c === 'encerrar'){ if (confirm('Encerrar e salvar esta rota?')) encerrarGravacao().then(desenhar); }
+    else if (c === 'encerrar') encerrarComNome().then(ok => { if (ok) desenhar(); });
+    else if (c === 'trj-nome') renomearTrajeto(id).then(desenhar);
     else if (c === 'seg'){ regSeg = b.dataset.v; desenhar(); }
     else if (c === 'etapas') abrir({v:'etapas'}, 'alta');
     else if (c === 'etapa-ver') abrir({v:'etapa', id}, 'alta');

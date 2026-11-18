@@ -472,3 +472,44 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
 .celular .mk.hoje{transform:scale(1.15);box-shadow:0 0 0 3px rgba(255,255,255,.9),0 2px 6px rgba(0,0,0,.35)}
 .celular .mk.hoje.feito{opacity:.85}
 }
+/* v32: letras do Google Maps e rotas com nome */
+@media (max-width:760px){
+.gpin{width:34px;height:34px;box-sizing:border-box;border-radius:50% 50% 50% 0;background:#EA4335;transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.45);display:grid;place-items:center}
+.gpin span{transform:rotate(45deg);color:#fff;font:800 17px/1 Roboto,Arial,sans-serif}
+.gpin.ok{background:#2E9E5B}
+.e-pin{flex:none;width:30px;height:30px;box-sizing:border-box;margin:0 2px 4px;border-radius:50% 50% 50% 0;background:#EA4335;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:grid;place-items:center}
+.e-pin>span{transform:rotate(45deg);color:#fff;font:800 15px/1 Roboto,Arial,sans-serif}
+.e-pin.ok{background:#2E9E5B}
+.e-pin.ext{background:#5F6368}
+.gm-card{margin:0 0 12px;border-radius:16px;background:#F1F5FE;padding:0 0 6px;overflow:hidden}
+.gm-card .h-gm{margin:0;border-radius:16px 16px 0 0;box-shadow:none}
+.gm-tit{margin:10px 14px 4px;font:700 11.5px/1.2 var(--corpo);letter-spacing:.05em;text-transform:uppercase;color:#1A56B8}
+.gm-leg{list-style:none;margin:0;padding:0 10px;display:grid}
+.gm-leg li{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center;padding:6px 2px;border-top:1px solid #DCE5F7}
+.gm-leg li:first-child{border-top:0}
+.gm-leg .e-pin{grid-row:span 2}
+.gm-leg b{font:600 14.5px/1.25 var(--corpo);color:var(--tinta)}
+.gm-leg small{font-size:12px;color:var(--cinza)}
+.gm-leg li.ok b{color:#4F5D58}
+.trj2{align-items:flex-start}
+.trj2 .c-it small{display:block}
+.trj-de{margin-top:3px;color:#33413C!important;line-height:1.4}
+.trj-bts{display:flex;gap:6px;flex:none}
+}
+/* janela de salvar/renomear rota (celular e computador) */
+.dlg-trj{width:min(440px,calc(100vw - 24px));max-height:calc(100dvh - 40px);border:0;border-radius:20px;padding:0;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.dlg-trj::backdrop{background:rgba(10,20,15,.45)}
+.dlg-trj form{padding:20px 18px 16px;display:grid;gap:10px}
+.dlg-trj h2{margin:0;font:700 20px/1.2 var(--titulo,inherit)}
+.dt-nome{display:grid;gap:6px}
+.dt-nome span{font:600 13px/1 var(--corpo,inherit);color:#4F5D58}
+.dt-nome input{height:48px;border:1.5px solid #C9D3CF;border-radius:12px;padding:0 14px;font:16px/1 var(--corpo,inherit)}
+.dt-nome input:focus{outline:0;border-color:#0B6B45;box-shadow:0 0 0 3px rgba(11,107,69,.15)}
+.dt-dica{margin:-4px 0 0;font-size:12.5px;color:#6B7773}
+.ficha-trj{margin:0;display:grid;border:1px solid #E3E8E6;border-radius:14px;overflow:hidden}
+.ficha-trj>div{display:grid;grid-template-columns:118px 1fr;gap:8px;padding:8px 12px;border-top:1px solid #EEF2F0;font-size:14px}
+.ficha-trj>div:first-child{border-top:0}
+.ficha-trj dt{color:#6B7773}
+.ficha-trj dd{margin:0;color:#1C2623}
+.dt-bts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.dt-bts .btn{height:48px;justify-content:center}

@@ -281,7 +281,7 @@ function ligarSincronizacao(){
       if (loc && (loc.mod || 0) >= (d.mod || 0)) continue;
       let pts = []; try { pts = decodificar(d.pts); } catch(e){}
       let lac = []; try { lac = JSON.parse(d.lac || '[]'); } catch(e){}
-      await TRJ.put(id, {id, pid:d.pid, etapa:d.etapa || null, inicio:d.inicio, fim:d.fim, km:d.km, seg:d.seg, por:d.por, nome:d.nomePor || d.por, mod:d.mod, pts, lac, importado:!!d.importado, nuvem:true}); mudou = true;
+      await TRJ.put(id, {id, pid:d.pid, etapa:d.etapa || null, inicio:d.inicio, fim:d.fim, km:d.km, seg:d.seg, por:d.por, nome:d.nomePor || d.por, mod:d.mod, pts, lac, importado:!!d.importado, titulo:d.titulo || '', de:d.de || '', ate:d.ate || '', nuvem:true}); mudou = true;
       const e = lsGet(K.tenv) || {}; e[id] = d.mod; lsSet(K.tenv, e);
     }
     if (mudou && RC.aoTrajetos) try { RC.aoTrajetos(); } catch(e){}
@@ -392,7 +392,7 @@ async function enviarTrajetos(){
     if (!t || !t.id || t.gravando) continue;
     if (env[t.id] === t.mod) continue;
     const doc = t.excluido ? {excluido:true, mod:t.mod, por:RC.email} :
-      {pid:t.pid, etapa:t.etapa || null, inicio:t.inicio, fim:t.fim, km:t.km, seg:t.seg, por:t.por || RC.email, nomePor:t.nome || RC.nome, mod:t.mod, n:(t.pts || []).length, pts:codificar(t.pts || []), lac:J(t.lac || []), importado:!!t.importado, excluido:false};
+      {pid:t.pid, etapa:t.etapa || null, inicio:t.inicio, fim:t.fim, km:t.km, seg:t.seg, por:t.por || RC.email, nomePor:t.nome || RC.nome, mod:t.mod, n:(t.pts || []).length, pts:codificar(t.pts || []), lac:J(t.lac || []), importado:!!t.importado, titulo:t.titulo || '', de:t.de || '', ate:t.ate || '', excluido:false};
     if (doc.pts && doc.pts.length > 980000) continue;
     ref.trajetos.doc(t.id).set(doc).catch(erroNuvem);
     env[t.id] = t.mod; lsSet(K.tenv, env);
