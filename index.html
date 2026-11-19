@@ -2237,7 +2237,7 @@ ol.rg-vis{list-style:none;padding:0}
     </div>
     <datalist id="listaEst"></datalist>
     <datalist id="todos"></datalist>
-    <div class="creditos"><b class="versao" id="versao">Versão 35 · app · 19/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
+    <div class="creditos"><b class="versao" id="versao">Versão 36 · app · 19/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
   </aside>
   <main id="mapa" aria-label="Mapa da rota"></main>
 </div>
@@ -5069,28 +5069,35 @@ async function apontarConta(){
     b.innerHTML = `<span>Vendo os dados de ${esc(dono)} · só leitura</span><button type="button" style="border:0;border-radius:8px;padding:6px 10px;font:700 12px system-ui;cursor:pointer">Voltar aos meus</button>`;
     b.querySelector('button').onclick = () => { lsDel('rc-ver'); location.reload(); }; document.body.appendChild(b); }
   /* primeira vez com contas separadas: traz para a conta da pessoa os roteiros e as rotas dela que estavam no espaço comum */
-  if (!RC.leitura && online()) try {
+  if (!RC.leitura && online()) try { await comTempo(migrar(dono), 25000); } catch(e){ if (e && e.code === 'permission-denied') RC.semRegras = true; }
+}
+async function migrar(dono){
+  {
     const meu = await comTempo(ref.projetos.limit(1).get(), 9000);
     if (meu.empty && !lsGet('rc-migrou:' + dono)){
       const ant2 = db.collection('equipe').doc('roteiro');
       const ps = await comTempo(ant2.collection('projetos').get(), 15000);
-      for (const d of ps.docs) await ref.projetos.doc(d.id).set(d.data());
+      ps.docs.forEach(d => { ref.projetos.doc(d.id).set(d.data()).catch(erroNuvem); });
+      ps.docs.forEach(d => aplicarRemoto(d.data(), d.id));
       const ts = await comTempo(ant2.collection('trajetos').get(), 15000);
-      for (const d of ts.docs){ const x = d.data(); if ((x.por || '').toLowerCase() === dono) await ref.trajetos.doc(d.id).set(x); }
+      ts.docs.forEach(d => { const x = d.data(); if ((x.por || '').toLowerCase() === dono) ref.trajetos.doc(d.id).set(x).catch(erroNuvem); });
       lsSet('rc-migrou:' + dono, 1);
     }
-  } catch(e){}
+  }
 }
 async function entrar(offline){
   RC.ativo = true; RC.estado = offline || !online() ? 'offline' : 'sinc';
-  await apontarConta();
+  try { await comTempo(apontarConta(), 30000); } catch(e){}
+  if (RC.semRegras){ RC.ativo = false; tela('<p class="en-msg erro">O Firebase ainda não aceita o novo formato (contas separadas). O administrador precisa publicar as regras novas do Firestore. Depois, toque em Tentar de novo.</p><button type="button" class="en-bt" data-en="recarregar">Tentar de novo</button>'); return; }
   tela('<p class="en-msg">Trazendo os roteiros da equipe…</p>');
   try {
     let snap;
     try { snap = await comTempo(ref.projetos.get(), offline || !online() ? 1500 : 12000); } catch(e){ if (e && e.code === 'permission-denied') throw e; snap = await ref.projetos.get({source:'cache'}); }
     snap.forEach(d => aplicarRemoto(d.data(), d.id));
   } catch(e){
-    if (e && e.code === 'permission-denied'){ RC.ativo = false; lsDel(K.acesso); return verificarAcesso(); }
+    if (e && e.code === 'permission-denied'){
+      if (window.__rcNegou){ RC.ativo = false; tela('<p class="en-msg erro">O Firebase recusou o acesso aos seus dados. Se você é o administrador, publique as regras novas do Firestore (contas separadas). Depois, toque em Tentar de novo.</p><button type="button" class="en-bt" data-en="recarregar">Tentar de novo</button>'); return; }
+      window.__rcNegou = true; RC.ativo = false; lsDel(K.acesso); return verificarAcesso(); }
   }
   iniciarApp();
   ligarSincronizacao();
