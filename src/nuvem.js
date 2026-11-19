@@ -254,6 +254,7 @@ async function apontarConta(){
   let perfil = {};
   if (RC.leitura) try { const d = await comTempo(base.get(), 6000); if (d.exists) perfil = d.data() || {}; } catch(e){}
   if (perfil.nome) RC.verNome = perfil.nome;
+  RC.verFoto = RC.leitura ? (perfil.foto || '') : ((RC.user && RC.user.photoURL) || '');
   ref.projetos = base.collection('projetos'); ref.trajetos = base.collection('trajetos');
   /* aparelho trocou de conta: tira os roteiros da conta anterior deste aparelho para não misturar */
   const ant = lsGet('rc-conta');

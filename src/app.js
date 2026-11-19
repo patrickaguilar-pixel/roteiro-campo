@@ -1451,7 +1451,7 @@ function prepRel(){
 const contaRel = () => window.RC && RC.dono && RC.ativo ? ` · ${RC.leitura ? (RC.verNome || RC.dono) : (RC.nome || RC.email)}` : '';
 function abrirCrono(){
   const T = totaisGerais();
-  let h = `<div class="rel-resumo">
+  let h = cabRel('Visão geral') + `<div class="rel-resumo">
     <div><b>${T.n}</b><span>pontos (${T.est} estações)</span></div><div><b>${state.etapas.length}</b><span>etapas</span></div><div><b>${T.d}</b><span>dias de campo</span></div>
     <div><b>${fmtKm(T.km)}</b><span>km</span></div><div><b>${fmtHc(T.h)}</b><span>ao volante (só deslocamento)</span></div><div><b>${fmtHc(T.vis)}</b><span>paradas nas estações</span></div><div><b>${fmtHc(T.pausa)}</b><span>almoço e lanches</span></div>
     <div><b>${T.feitos}</b><span>visitadas</span></div><div><b>${T.hosp}/${T.noites}</b><span>pernoites com hospedagem</span></div><div><b>${T.ac}</b><span>acessos a confirmar</span></div></div>

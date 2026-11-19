@@ -1582,6 +1582,47 @@ html.rc-leitura #cGrav, html.rc-leitura .e-bt.chk, html.rc-leitura [data-cp="gra
   html.rc-leitura #cTopo{top:calc(72px + env(safe-area-inset-top,0px))}
 }
 .eq-tag.coord{background:#EDE4FF;color:#5B21B6}
+/* v40: relatórios com cabeçalho de quem são os dados e executado mais completo */
+.rc-cab{display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;padding:16px 18px;margin:0 0 14px;border-radius:16px;background:linear-gradient(135deg,#0B6B45,#0E8A59);color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rc-av{position:relative;flex:none;width:56px;height:56px;border-radius:50%;background:#fff;color:#0B6B45;display:grid;place-items:center;overflow:hidden;box-shadow:0 0 0 3px rgba(255,255,255,.5)}
+.rc-av i{font:800 24px/1 system-ui,sans-serif;font-style:normal}
+.rc-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.rc-quem{display:grid;gap:2px;min-width:0;flex:1}
+.rc-quem small{font-size:12px;opacity:.85;text-transform:uppercase;letter-spacing:.05em}
+.rc-quem b{font-size:22px;line-height:1.15}
+.rc-quem span{font-size:13px;opacity:.9}
+.rc-info{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0}
+.rc-info div{display:grid}
+.rc-info dt{font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.04em}
+.rc-info dd{margin:0;font-weight:600;font-size:14px}
+.rc-prog{margin:0 0 12px}
+.rc-prog-t{display:flex;align-items:baseline;gap:6px;font-size:15px;margin-bottom:6px}
+.rc-prog-t b{font-size:26px}
+.rc-prog-t span{margin-left:auto;font-weight:700;font-size:18px;color:#0B6B45}
+.rc-prog>i{display:block;height:12px;border-radius:6px;background:#E5ECE8;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rc-prog>i>i{display:block;height:100%;background:#2E9E5B;border-radius:6px}
+.rc-kpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:0 0 16px}
+.rc-kpi div{display:grid;gap:2px;padding:10px 12px;border-radius:12px;background:#F3F6F4;border-left:4px solid #C9D3CF;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rc-kpi b{font-size:22px}
+.rc-kpi span{font-size:12.5px;color:#4F5D58}
+.rc-kpi .k-ok{border-left-color:#2E9E5B;background:#EAF6EF}.rc-kpi .k-manut{border-left-color:#D97706;background:#FEF5E7}.rc-kpi .k-acesso{border-left-color:#DC2626;background:#FDEDED}
+.rc-sit{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rc-sit.s-ok{background:#E3F4EA;color:#14653A}.rc-sit.s-manut{background:#FDEFD6;color:#92400E}.rc-sit.s-acesso{background:#FBE0E0;color:#991B1B}.rc-sit.s-nd{background:#EEF2F0;color:#6B7773;font-weight:600}
+.rc-aten{display:grid;gap:8px;margin:0 0 14px}
+.rc-at{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:start;padding:10px 12px;border-radius:12px;border:1px solid #F1D9B5;background:#FFFBF3}
+.rc-at.s-acesso{border-color:#F3C4C4;background:#FFF6F6}
+.rc-at small{display:block;font-size:12px;color:#6B7773;margin-top:2px}
+.rc-at p{grid-column:1/-1;margin:2px 0 0;font-size:13.5px}
+.rc-dia{margin:0 0 14px;break-inside:avoid-page}
+.rc-dia-t{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:8px 12px;border-radius:10px 10px 0 0;background:#0B6B45;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rc-dia-t b{font-size:15px}
+.rc-dia-t span{font-size:13px;opacity:.9}
+.rc-et{display:inline-block;padding:2px 7px;border-radius:6px;border-left:3px solid var(--c);background:#F3F6F4;font-size:12px}
+.rc-ets{display:grid;gap:8px;margin:0 0 14px}
+.rc-etl{display:grid;grid-template-columns:minmax(90px,160px) 1fr auto;align-items:center;gap:10px;font-size:14px}
+.rc-etl>i{display:block;height:10px;border-radius:5px;background:#E5ECE8;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rc-etl>i>i{display:block;height:100%;background:var(--c)}
+.rc-etl span{font-weight:700;font-size:13px}
 
 /* ===================== CELULAR: interface própria ===================== */
 #cel{display:none}
@@ -2254,7 +2295,7 @@ ol.rg-vis{list-style:none;padding:0}
     </div>
     <datalist id="listaEst"></datalist>
     <datalist id="todos"></datalist>
-    <div class="creditos"><b class="versao" id="versao">Versão 39 · app · 19/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
+    <div class="creditos"><b class="versao" id="versao">Versão 40 · app · 19/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
   </aside>
   <main id="mapa" aria-label="Mapa da rota"></main>
 </div>
@@ -5079,6 +5120,7 @@ async function apontarConta(){
   let perfil = {};
   if (RC.leitura) try { const d = await comTempo(base.get(), 6000); if (d.exists) perfil = d.data() || {}; } catch(e){}
   if (perfil.nome) RC.verNome = perfil.nome;
+  RC.verFoto = RC.leitura ? (perfil.foto || '') : ((RC.user && RC.user.photoURL) || '');
   ref.projetos = base.collection('projetos'); ref.trajetos = base.collection('trajetos');
   /* aparelho trocou de conta: tira os roteiros da conta anterior deste aparelho para não misturar */
   const ant = lsGet('rc-conta');
@@ -6796,7 +6838,7 @@ function prepRel(){
 const contaRel = () => window.RC && RC.dono && RC.ativo ? ` · ${RC.leitura ? (RC.verNome || RC.dono) : (RC.nome || RC.email)}` : '';
 function abrirCrono(){
   const T = totaisGerais();
-  let h = `<div class="rel-resumo">
+  let h = cabRel('Visão geral') + `<div class="rel-resumo">
     <div><b>${T.n}</b><span>pontos (${T.est} estações)</span></div><div><b>${state.etapas.length}</b><span>etapas</span></div><div><b>${T.d}</b><span>dias de campo</span></div>
     <div><b>${fmtKm(T.km)}</b><span>km</span></div><div><b>${fmtHc(T.h)}</b><span>ao volante (só deslocamento)</span></div><div><b>${fmtHc(T.vis)}</b><span>paradas nas estações</span></div><div><b>${fmtHc(T.pausa)}</b><span>almoço e lanches</span></div>
     <div><b>${T.feitos}</b><span>visitadas</span></div><div><b>${T.hosp}/${T.noites}</b><span>pernoites com hospedagem</span></div><div><b>${T.ac}</b><span>acessos a confirmar</span></div></div>
@@ -8762,30 +8804,51 @@ function secaoOrdemRel(){
       return `<tr><td class="n">${i + 1}</td><td class="nw">${esc(fmtTsVisita(x.t))}</td><td><b>${esc(EST[x.s.id].nome)}</b></td><td>${esc(estMun(EST[x.s.id]))}</td><td class="nw">${esc(x.e.nome)}</td><td class="nw">nº ${x.k + 1}${inf ? ` · dia ${inf.d + 1}` : ''}</td><td>${x.s.sit ? SITUACOES[x.s.sit] : '–'}</td></tr>`; }).join('')}
     </tbody></table>`;
 }
-/* Relatório do executado: só o que já foi feito em campo (visitas, situação, anotações, fotos, ordem e rotas gravadas). */
+/* Cabeçalho dos relatórios: de quem são os dados, projeto e quando foi gerado. */
+function cabRel(tipo){
+  const R = window.RC || {}, nuvem = R.ativo || R.estado === 'offline';
+  const nome = R.leitura ? (R.verNome || R.dono) : (R.nome || R.email || 'Este aparelho'), email = R.leitura ? R.dono : (R.email || '');
+  const foto = R.verFoto || '', meta = metaDe(PJ_ID), ini = (nome || '?').trim().charAt(0).toUpperCase();
+  const agora = new Date().toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+  return `<div class="rc-cab"><span class="rc-av">${foto ? `<img src="${esc(foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<i>${esc(ini)}</i></span>
+    <div class="rc-quem"><small>${esc(tipo)} · dados de</small><b>${esc(nome)}</b>${email && email !== nome ? `<span>${esc(email)}</span>` : ''}</div>
+    <dl class="rc-info"><div><dt>Projeto</dt><dd>${esc(meta ? meta.nome : 'Roteiro')}</dd></div><div><dt>Gerado em</dt><dd>${esc(agora)}</dd></div>${R.leitura ? `<div><dt>Visto por</dt><dd>${esc(R.nome || R.email)}</dd></div>` : ''}</dl></div>`;
+}
+const chipSit = s => s ? `<span class="rc-sit s-${s}">${esc(SITUACOES[s])}</span>` : '<span class="rc-sit s-nd">não informada</span>';
+/* Relatório do executado: só o que já foi feito em campo, dia a dia, com situação, anotações, fotos e rotas. */
 function abrirExecutado(){
-  const L = ordemRealizada(), sit = {ok:0, manut:0, acesso:0}; L.forEach(x => { if (x.s.sit) sit[x.s.sit]++; });
-  const total = state.etapas.reduce((a, e) => a + e.stops.length, 0), fotos = L.reduce((a, x) => a + (x.s.fotos || []).length, 0);
-  const kmG = GRV.lista.reduce((a, t) => a + t.km, 0), dias = new Set(L.map(x => new Date(x.t).toDateString())).size;
-  const ini = L.length ? new Date(L[0].t).toLocaleDateString('pt-BR') : '', fim = L.length ? new Date(L[L.length - 1].t).toLocaleDateString('pt-BR') : '';
-  let h = `<div class="rel-resumo">
-    <div><b>${L.length}</b><span>visitadas de ${total}</span></div><div><b>${total ? Math.round(L.length / total * 100) : 0}%</b><span>do roteiro</span></div><div><b>${dias}</b><span>dias com visita</span></div>
-    <div><b>${sit.ok}</b><span>funcionando</span></div><div><b>${sit.manut}</b><span>precisam de manutenção</span></div><div><b>${sit.acesso}</b><span>sem acesso</span></div>
-    <div><b>${fotos}</b><span>fotos</span></div><div><b>${num(kmG, 1)}</b><span>km gravados (${GRV.lista.length} ${GRV.lista.length === 1 ? 'rota' : 'rotas'})</span></div></div>
-    <p class="rot" style="margin:6px 0 0">${L.length ? `Período das visitas: ${ini}${fim !== ini ? ` a ${fim}` : ''}. ` : ''}Só o que já foi registrado em campo. Para ver também o que falta, use a Visão geral.</p>`;
-  if (!L.length) h += '<p class="vazio">Nenhuma visita marcada ainda. Em campo, toque em "Cheguei" em cada estação.</p>';
-  h += secaoOrdemRel();
-  state.etapas.forEach(e => {
-    const V = ordemRealizada(e); if (!V.length) return;
-    h += `<h3 class="rel-etapa" style="--c:${e.cor}">${esc(e.nome)}<span>${V.length} de ${e.stops.length} estações visitadas</span></h3>
-      <table class="rel"><caption style="--c:${e.cor}">Visitas realizadas</caption>
-      <thead><tr><th>Nº</th><th>Data e hora</th><th>Estação</th><th>Código</th><th>Município</th><th>Situação</th><th>Anotações da visita</th><th>Fotos</th></tr></thead><tbody>
-      ${V.map((x, i) => { const est = EST[x.s.id];
-        return `<tr><td class="n">${i + 1}</td><td class="nw">${esc(fmtTsVisita(x.t))}</td><td><b>${esc(est.nome)}</b> ${tipoBadge(est)}</td><td class="nw">${esc(est.cod.join(' / '))}</td><td>${esc(estMun(est))}</td>
-          <td>${x.s.sit ? esc(SITUACOES[x.s.sit]) : '<span class="falta">não informada</span>'}</td><td>${[x.s.relato && esc(x.s.relato), x.s.nota && `<span class="rot">Obs.: ${esc(x.s.nota)}</span>`].filter(Boolean).join('<br>') || '–'}</td><td class="n">${(x.s.fotos || []).length || '–'}</td></tr>`; }).join('')}
-      </tbody></table>`;
-    h += secaoFotosRel(e, e.cor);
+  const L = ordemRealizada().map((x, i) => ({...x, n: i + 1})), sit = {ok:0, manut:0, acesso:0, nd:0}; L.forEach(x => sit[x.s.sit || 'nd']++);
+  const total = state.etapas.reduce((a, e) => a + e.stops.length, 0), fotos = L.reduce((a, x) => a + (x.s.fotos || []).length, 0), pct = total ? Math.round(L.length / total * 100) : 0;
+  const kmG = GRV.lista.reduce((a, t) => a + t.km, 0), diaDe = t => new Date(t).toLocaleDateString('sv-SE');
+  const porDia = {}; L.forEach(x => (porDia[diaDe(x.t)] = porDia[diaDe(x.t)] || []).push(x));
+  const kmDia = {}; GRV.lista.forEach(t => { const d = diaDe(Date.parse(t.inicio)); kmDia[d] = (kmDia[d] || 0) + t.km; });
+  const hm = t => new Date(t).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  let h = cabRel('Relatório do executado');
+  h += `<div class="rc-prog"><div class="rc-prog-t"><b>${L.length}</b> de ${total} estações visitadas <span>${pct}%</span></div><i><i style="width:${pct}%"></i></i></div>
+    <div class="rc-kpi">
+      <div class="k-ok"><b>${sit.ok}</b><span>funcionando</span></div><div class="k-manut"><b>${sit.manut}</b><span>precisam de manutenção</span></div>
+      <div class="k-acesso"><b>${sit.acesso}</b><span>sem acesso / não encontrada</span></div><div><b>${sit.nd}</b><span>situação não informada</span></div>
+      <div><b>${Object.keys(porDia).length}</b><span>dias com visita</span></div><div><b>${fotos}</b><span>fotos</span></div><div><b>${num(kmG, 1)}</b><span>km gravados · ${GRV.lista.length} ${GRV.lista.length === 1 ? 'rota' : 'rotas'}</span></div></div>`;
+  if (!L.length){ h += '<p class="vazio">Nenhuma visita marcada ainda. Em campo, toque em "Cheguei" em cada estação.</p>'; }
+  /* atenção: o que precisa de ação */
+  const at = L.filter(x => x.s.sit === 'manut' || x.s.sit === 'acesso');
+  if (at.length) h += `<h3 class="rel-etapa" style="--c:#B45309">Precisam de atenção<span>${at.length} ${at.length === 1 ? 'estação' : 'estações'} com manutenção ou sem acesso</span></h3>
+    <div class="rc-aten">${at.map(x => { const est = EST[x.s.id]; return `<div class="rc-at s-${x.s.sit}"><div><b>${esc(est.nome)}</b> ${tipoBadge(est)}<small>${esc(est.cod.join(' / '))} · ${esc(estMun(est))} · ${esc(x.e.nome)} · visitada ${esc(fmtTsVisita(x.t))}</small></div>${chipSit(x.s.sit)}${x.s.relato ? `<p>${esc(x.s.relato)}</p>` : ''}</div>`; }).join('')}</div>`;
+  /* dia a dia */
+  if (L.length) h += `<h3 class="rel-etapa" style="--c:#0B6B45">Dia a dia<span>visitas na ordem em que aconteceram</span></h3>`;
+  Object.keys(porDia).sort().forEach(d => {
+    const V = porDia[d], dt0 = new Date(V[0].t).toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'}), dt = dt0.charAt(0).toUpperCase() + dt0.slice(1);
+    h += `<div class="rc-dia"><div class="rc-dia-t"><b>${esc(dt)}</b><span>${V.length} ${V.length === 1 ? 'visita' : 'visitas'} · ${hm(V[0].t)} às ${hm(V[V.length - 1].t)}${kmDia[d] ? ` · ${num(kmDia[d], 1)} km gravados` : ''}</span></div>
+      <table class="rel rc-tab"><thead><tr><th>Nº</th><th>Hora</th><th>Estação</th><th>Município</th><th>Etapa</th><th>Situação</th><th>Anotações</th><th>Fotos</th></tr></thead><tbody>
+      ${V.map(x => { const est = EST[x.s.id]; return `<tr><td class="n">${x.n}</td><td class="nw">${hm(x.t)}</td><td><b>${esc(est.nome)}</b> ${tipoBadge(est)}<br><span class="rot">${esc(est.cod.join(' / '))}</span></td><td>${esc(estMun(est))}</td><td class="nw"><span class="rc-et" style="--c:${x.e.cor}">${esc(x.e.nome)}</span></td><td>${chipSit(x.s.sit)}</td><td>${[x.s.relato && esc(x.s.relato), x.s.nota && `<span class="rot">Obs.: ${esc(x.s.nota)}</span>`].filter(Boolean).join('<br>') || '–'}</td><td class="n">${(x.s.fotos || []).length || '–'}</td></tr>`; }).join('')}
+      </tbody></table></div>`;
   });
+  /* andamento por etapa */
+  const ets = state.etapas.filter(e => e.stops.length);
+  if (L.length && ets.length) h += `<h3 class="rel-etapa" style="--c:#334155">Andamento por etapa<span>${ets.length} ${ets.length === 1 ? 'etapa' : 'etapas'}</span></h3>
+    <div class="rc-ets">${ets.map(e => { const v = e.stops.filter(s => s.feito).length, p = Math.round(v / e.stops.length * 100);
+      return `<div class="rc-etl" style="--c:${e.cor}"><b>${esc(e.nome)}</b><i><i style="width:${p}%"></i></i><span>${v}/${e.stops.length} · ${p}%</span></div>`; }).join('')}</div>`;
+  state.etapas.forEach(e => { if (ordemRealizada(e).length) h += secaoFotosRel(e, e.cor); });
   h += secaoTrajetosRel();
   document.getElementById('dRelTit').textContent = 'Relatório do executado' + contaRel();
   document.getElementById('relCorpo').innerHTML = h;

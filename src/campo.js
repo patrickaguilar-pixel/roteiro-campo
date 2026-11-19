@@ -387,30 +387,51 @@ function secaoOrdemRel(){
       return `<tr><td class="n">${i + 1}</td><td class="nw">${esc(fmtTsVisita(x.t))}</td><td><b>${esc(EST[x.s.id].nome)}</b></td><td>${esc(estMun(EST[x.s.id]))}</td><td class="nw">${esc(x.e.nome)}</td><td class="nw">nº ${x.k + 1}${inf ? ` · dia ${inf.d + 1}` : ''}</td><td>${x.s.sit ? SITUACOES[x.s.sit] : '–'}</td></tr>`; }).join('')}
     </tbody></table>`;
 }
-/* Relatório do executado: só o que já foi feito em campo (visitas, situação, anotações, fotos, ordem e rotas gravadas). */
+/* Cabeçalho dos relatórios: de quem são os dados, projeto e quando foi gerado. */
+function cabRel(tipo){
+  const R = window.RC || {}, nuvem = R.ativo || R.estado === 'offline';
+  const nome = R.leitura ? (R.verNome || R.dono) : (R.nome || R.email || 'Este aparelho'), email = R.leitura ? R.dono : (R.email || '');
+  const foto = R.verFoto || '', meta = metaDe(PJ_ID), ini = (nome || '?').trim().charAt(0).toUpperCase();
+  const agora = new Date().toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+  return `<div class="rc-cab"><span class="rc-av">${foto ? `<img src="${esc(foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<i>${esc(ini)}</i></span>
+    <div class="rc-quem"><small>${esc(tipo)} · dados de</small><b>${esc(nome)}</b>${email && email !== nome ? `<span>${esc(email)}</span>` : ''}</div>
+    <dl class="rc-info"><div><dt>Projeto</dt><dd>${esc(meta ? meta.nome : 'Roteiro')}</dd></div><div><dt>Gerado em</dt><dd>${esc(agora)}</dd></div>${R.leitura ? `<div><dt>Visto por</dt><dd>${esc(R.nome || R.email)}</dd></div>` : ''}</dl></div>`;
+}
+const chipSit = s => s ? `<span class="rc-sit s-${s}">${esc(SITUACOES[s])}</span>` : '<span class="rc-sit s-nd">não informada</span>';
+/* Relatório do executado: só o que já foi feito em campo, dia a dia, com situação, anotações, fotos e rotas. */
 function abrirExecutado(){
-  const L = ordemRealizada(), sit = {ok:0, manut:0, acesso:0}; L.forEach(x => { if (x.s.sit) sit[x.s.sit]++; });
-  const total = state.etapas.reduce((a, e) => a + e.stops.length, 0), fotos = L.reduce((a, x) => a + (x.s.fotos || []).length, 0);
-  const kmG = GRV.lista.reduce((a, t) => a + t.km, 0), dias = new Set(L.map(x => new Date(x.t).toDateString())).size;
-  const ini = L.length ? new Date(L[0].t).toLocaleDateString('pt-BR') : '', fim = L.length ? new Date(L[L.length - 1].t).toLocaleDateString('pt-BR') : '';
-  let h = `<div class="rel-resumo">
-    <div><b>${L.length}</b><span>visitadas de ${total}</span></div><div><b>${total ? Math.round(L.length / total * 100) : 0}%</b><span>do roteiro</span></div><div><b>${dias}</b><span>dias com visita</span></div>
-    <div><b>${sit.ok}</b><span>funcionando</span></div><div><b>${sit.manut}</b><span>precisam de manutenção</span></div><div><b>${sit.acesso}</b><span>sem acesso</span></div>
-    <div><b>${fotos}</b><span>fotos</span></div><div><b>${num(kmG, 1)}</b><span>km gravados (${GRV.lista.length} ${GRV.lista.length === 1 ? 'rota' : 'rotas'})</span></div></div>
-    <p class="rot" style="margin:6px 0 0">${L.length ? `Período das visitas: ${ini}${fim !== ini ? ` a ${fim}` : ''}. ` : ''}Só o que já foi registrado em campo. Para ver também o que falta, use a Visão geral.</p>`;
-  if (!L.length) h += '<p class="vazio">Nenhuma visita marcada ainda. Em campo, toque em "Cheguei" em cada estação.</p>';
-  h += secaoOrdemRel();
-  state.etapas.forEach(e => {
-    const V = ordemRealizada(e); if (!V.length) return;
-    h += `<h3 class="rel-etapa" style="--c:${e.cor}">${esc(e.nome)}<span>${V.length} de ${e.stops.length} estações visitadas</span></h3>
-      <table class="rel"><caption style="--c:${e.cor}">Visitas realizadas</caption>
-      <thead><tr><th>Nº</th><th>Data e hora</th><th>Estação</th><th>Código</th><th>Município</th><th>Situação</th><th>Anotações da visita</th><th>Fotos</th></tr></thead><tbody>
-      ${V.map((x, i) => { const est = EST[x.s.id];
-        return `<tr><td class="n">${i + 1}</td><td class="nw">${esc(fmtTsVisita(x.t))}</td><td><b>${esc(est.nome)}</b> ${tipoBadge(est)}</td><td class="nw">${esc(est.cod.join(' / '))}</td><td>${esc(estMun(est))}</td>
-          <td>${x.s.sit ? esc(SITUACOES[x.s.sit]) : '<span class="falta">não informada</span>'}</td><td>${[x.s.relato && esc(x.s.relato), x.s.nota && `<span class="rot">Obs.: ${esc(x.s.nota)}</span>`].filter(Boolean).join('<br>') || '–'}</td><td class="n">${(x.s.fotos || []).length || '–'}</td></tr>`; }).join('')}
-      </tbody></table>`;
-    h += secaoFotosRel(e, e.cor);
+  const L = ordemRealizada().map((x, i) => ({...x, n: i + 1})), sit = {ok:0, manut:0, acesso:0, nd:0}; L.forEach(x => sit[x.s.sit || 'nd']++);
+  const total = state.etapas.reduce((a, e) => a + e.stops.length, 0), fotos = L.reduce((a, x) => a + (x.s.fotos || []).length, 0), pct = total ? Math.round(L.length / total * 100) : 0;
+  const kmG = GRV.lista.reduce((a, t) => a + t.km, 0), diaDe = t => new Date(t).toLocaleDateString('sv-SE');
+  const porDia = {}; L.forEach(x => (porDia[diaDe(x.t)] = porDia[diaDe(x.t)] || []).push(x));
+  const kmDia = {}; GRV.lista.forEach(t => { const d = diaDe(Date.parse(t.inicio)); kmDia[d] = (kmDia[d] || 0) + t.km; });
+  const hm = t => new Date(t).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  let h = cabRel('Relatório do executado');
+  h += `<div class="rc-prog"><div class="rc-prog-t"><b>${L.length}</b> de ${total} estações visitadas <span>${pct}%</span></div><i><i style="width:${pct}%"></i></i></div>
+    <div class="rc-kpi">
+      <div class="k-ok"><b>${sit.ok}</b><span>funcionando</span></div><div class="k-manut"><b>${sit.manut}</b><span>precisam de manutenção</span></div>
+      <div class="k-acesso"><b>${sit.acesso}</b><span>sem acesso / não encontrada</span></div><div><b>${sit.nd}</b><span>situação não informada</span></div>
+      <div><b>${Object.keys(porDia).length}</b><span>dias com visita</span></div><div><b>${fotos}</b><span>fotos</span></div><div><b>${num(kmG, 1)}</b><span>km gravados · ${GRV.lista.length} ${GRV.lista.length === 1 ? 'rota' : 'rotas'}</span></div></div>`;
+  if (!L.length){ h += '<p class="vazio">Nenhuma visita marcada ainda. Em campo, toque em "Cheguei" em cada estação.</p>'; }
+  /* atenção: o que precisa de ação */
+  const at = L.filter(x => x.s.sit === 'manut' || x.s.sit === 'acesso');
+  if (at.length) h += `<h3 class="rel-etapa" style="--c:#B45309">Precisam de atenção<span>${at.length} ${at.length === 1 ? 'estação' : 'estações'} com manutenção ou sem acesso</span></h3>
+    <div class="rc-aten">${at.map(x => { const est = EST[x.s.id]; return `<div class="rc-at s-${x.s.sit}"><div><b>${esc(est.nome)}</b> ${tipoBadge(est)}<small>${esc(est.cod.join(' / '))} · ${esc(estMun(est))} · ${esc(x.e.nome)} · visitada ${esc(fmtTsVisita(x.t))}</small></div>${chipSit(x.s.sit)}${x.s.relato ? `<p>${esc(x.s.relato)}</p>` : ''}</div>`; }).join('')}</div>`;
+  /* dia a dia */
+  if (L.length) h += `<h3 class="rel-etapa" style="--c:#0B6B45">Dia a dia<span>visitas na ordem em que aconteceram</span></h3>`;
+  Object.keys(porDia).sort().forEach(d => {
+    const V = porDia[d], dt0 = new Date(V[0].t).toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'}), dt = dt0.charAt(0).toUpperCase() + dt0.slice(1);
+    h += `<div class="rc-dia"><div class="rc-dia-t"><b>${esc(dt)}</b><span>${V.length} ${V.length === 1 ? 'visita' : 'visitas'} · ${hm(V[0].t)} às ${hm(V[V.length - 1].t)}${kmDia[d] ? ` · ${num(kmDia[d], 1)} km gravados` : ''}</span></div>
+      <table class="rel rc-tab"><thead><tr><th>Nº</th><th>Hora</th><th>Estação</th><th>Município</th><th>Etapa</th><th>Situação</th><th>Anotações</th><th>Fotos</th></tr></thead><tbody>
+      ${V.map(x => { const est = EST[x.s.id]; return `<tr><td class="n">${x.n}</td><td class="nw">${hm(x.t)}</td><td><b>${esc(est.nome)}</b> ${tipoBadge(est)}<br><span class="rot">${esc(est.cod.join(' / '))}</span></td><td>${esc(estMun(est))}</td><td class="nw"><span class="rc-et" style="--c:${x.e.cor}">${esc(x.e.nome)}</span></td><td>${chipSit(x.s.sit)}</td><td>${[x.s.relato && esc(x.s.relato), x.s.nota && `<span class="rot">Obs.: ${esc(x.s.nota)}</span>`].filter(Boolean).join('<br>') || '–'}</td><td class="n">${(x.s.fotos || []).length || '–'}</td></tr>`; }).join('')}
+      </tbody></table></div>`;
   });
+  /* andamento por etapa */
+  const ets = state.etapas.filter(e => e.stops.length);
+  if (L.length && ets.length) h += `<h3 class="rel-etapa" style="--c:#334155">Andamento por etapa<span>${ets.length} ${ets.length === 1 ? 'etapa' : 'etapas'}</span></h3>
+    <div class="rc-ets">${ets.map(e => { const v = e.stops.filter(s => s.feito).length, p = Math.round(v / e.stops.length * 100);
+      return `<div class="rc-etl" style="--c:${e.cor}"><b>${esc(e.nome)}</b><i><i style="width:${p}%"></i></i><span>${v}/${e.stops.length} · ${p}%</span></div>`; }).join('')}</div>`;
+  state.etapas.forEach(e => { if (ordemRealizada(e).length) h += secaoFotosRel(e, e.cor); });
   h += secaoTrajetosRel();
   document.getElementById('dRelTit').textContent = 'Relatório do executado' + contaRel();
   document.getElementById('relCorpo').innerHTML = h;
