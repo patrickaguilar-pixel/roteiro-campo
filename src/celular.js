@@ -305,9 +305,20 @@ if (CELULAR){
     const seg = (k, n) => `<button type="button" data-c="seg" data-v="${k}" aria-pressed="${regSeg === k}">${n}</button>`;
     let h = cab('Registros', '') + `<div class="c-seg">${seg('visitas', 'Visitas')}${seg('fotos', 'Fotos')}${seg('rotas', 'Rotas')}</div>`;
     if (regSeg === 'visitas'){
-      const v = state.etapas.flatMap(e => e.stops.filter(s => s.feito || s.relato || s.sit || (s.fotos || []).length).map(s => ({e, s})));
-      h += v.length ? `<ul class="c-vis">${v.reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-c="estacao" data-id="${s.id}"><b>${esc(EST[s.id].nome)} ${tipoBadge(EST[s.id])}</b>
-          <small>${s.feito ? `Visitada ${esc(quando(s))}` : 'Não marcada como visitada'} · ${esc(e.nome)}</small><span class="c-tags">${s.sit ? `<span class="c-sit s-${s.sit}">${SITUACOES[s.sit]}</span>` : ''}${(s.fotos || []).length ? `<span class="c-tag">${s.fotos.length} foto(s)</span>` : ''}${s.relato ? '<span class="c-tag">anotação</span>' : ''}</span></button></li>`).join('')}</ul>` : vazio('As visitas registradas aparecem aqui.');
+      /* ordem realizada: numeradas na ordem do "Cheguei", separadas por dia; depois as que têm registro mas não foram marcadas */
+      const feitas = ordemRealizada().map((x, i) => ({...x, n: i + 1}));
+      const semMarca = state.etapas.flatMap(e => e.stops.filter(s => !s.feito && (s.relato || s.sit || (s.fotos || []).length)).map(s => ({e, s})));
+      const fora = state.etapas.filter(foraDaOrdem);
+      h += fora.map(e => `<div class="o-aviso" style="--c:${e.cor}"><p><b>${esc(e.nome)}</b> foi visitada em outra ordem.</p><button type="button" class="c-bt" data-c="usar-ordem" data-id="${e.id}">Usar a ordem em que visitei</button></div>`).join('');
+      let dia0 = '';
+      h += feitas.length ? `<p class="c-rot">Ordem realizada · ${feitas.length} ${feitas.length === 1 ? 'visita' : 'visitas'}</p><ol class="o-lista">${feitas.map(x => {
+          const d = new Date(x.t).toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'2-digit'}), hora = new Date(x.t).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+          const cabD = d !== dia0 ? `<li class="o-dia">${esc(d)}</li>` : ''; dia0 = d; const inf = P[x.e.id] && P[x.e.id].info[x.k];
+          return cabD + `<li class="o-it" style="--c:${x.e.cor}"><span class="o-n">${x.n}</span><button type="button" data-c="estacao" data-id="${x.s.id}"><b>${esc(EST[x.s.id].nome)} ${tipoBadge(EST[x.s.id])}</b>
+            <small>${hora} · ${esc(x.e.nome)} · nº ${x.k + 1} no roteiro${inf ? ` (dia ${inf.d + 1})` : ''}</small>${x.s.sit ? `<span class="c-sit s-${x.s.sit}">${SITUACOES[x.s.sit]}</span>` : ''}</button></li>`; }).join('')}</ol>` : '';
+      const v = semMarca;
+      h += v.length ? `<p class="c-rot">Com registro, sem "Cheguei"</p><ul class="c-vis">${v.reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-c="estacao" data-id="${s.id}"><b>${esc(EST[s.id].nome)} ${tipoBadge(EST[s.id])}</b>
+          <small>Não marcada como visitada · ${esc(e.nome)}</small><span class="c-tags">${s.sit ? `<span class="c-sit s-${s.sit}">${SITUACOES[s.sit]}</span>` : ''}${(s.fotos || []).length ? `<span class="c-tag">${s.fotos.length} foto(s)</span>` : ''}${s.relato ? '<span class="c-tag">anotação</span>' : ''}</span></button></li>`).join('')}</ul>` : (feitas.length ? '' : vazio('As visitas aparecem aqui, numeradas na ordem em que você marcar "Cheguei".'));
     } else if (regSeg === 'fotos'){
       const fotos = todasFotos().sort((a, b) => (b.f.data || '').localeCompare(a.f.data || ''));
       h += fotos.length ? `<div class="c-galeria">${fotos.map(x => `<button type="button" data-ver-foto="${x.s.id}|${x.f.id}"><img data-foto="${x.f.id}" alt=""><span>${esc(EST[x.s.id].nome)}</span></button>`).join('')}</div><button type="button" class="c-bt largo" data-c="zip">${svgI('baixar')}<span>Baixar todas (ZIP com GPS)</span></button>` : vazio('As fotos tiradas nas visitas aparecem aqui.');
@@ -339,7 +350,8 @@ if (CELULAR){
     const e = etapaPorId(id); if (!e) return telaEtapas();
     const p = P[e.id];
     let h = cab(esc(e.nome), p ? `${e.stops.length} estações · ${p.days.length} dias · ${fmtKm(p.tot.km)} km` : '');
-    h += `<div class="c-linha"><label class="c-campo">Data de início<input type="date" data-c="inicio" data-id="${e.id}" value="${e.inicio || ''}"></label><button type="button" class="c-bt" data-c="otimizar" data-id="${e.id}">Otimizar ordem</button></div>`;
+    h += `<div class="c-linha"><label class="c-campo">Data de início<input type="date" data-c="inicio" data-id="${e.id}" value="${e.inicio || ''}"></label><button type="button" class="c-bt" data-c="otimizar" data-id="${e.id}">Otimizar ordem</button></div>
+      ${ordemRealizada(e).length ? `<button type="button" class="c-bt largo" data-c="usar-ordem" data-id="${e.id}">${svgI('ok')}<span>Usar a ordem em que visitei${foraDaOrdem(e) ? '' : ' (já está igual)'}</span></button>` : ''}`;
     if (p) h += p.days.map((D, d) => { const g = gmPlano(e, D), ks = []; for (let k = D.i; k < D.j; k++) ks.push(k);
       return `<div class="c-dd2"><button type="button" class="c-dd2-t" data-c="dia-ir" data-id="${e.id}" data-d="${d}"><b>Dia ${d + 1}${D.data ? ` · ${esc(fmtDS(D.data))}` : ''}</b><span>${ks.map(k => esc(EST[e.stops[k].id].nome)).join(' → ')}</span><small>${fmtKm(D.km)} km · ${fmtHora(D.saida)}–${fmtHora(D.chegada)} · ${D.to === BH ? 'volta a BH' : 'dorme em ' + esc(MUN[D.to].n)}</small></button>
         <a class="c-red" href="${g.partes[0].url}" target="_blank" rel="noopener" aria-label="Abrir no Google Maps">${IC.gm}</a></div>`; }).join('');
@@ -420,6 +432,7 @@ if (CELULAR){
     else if (c === 'seg'){ regSeg = b.dataset.v; desenhar(); }
     else if (c === 'etapas') abrir({v:'etapas'}, 'alta');
     else if (c === 'etapa-ver') abrir({v:'etapa', id}, 'alta');
+    else if (c === 'usar-ordem'){ const e = etapaPorId(id); if (e && confirm(`Trocar a ordem de ${e.nome} pela ordem em que as estações foram visitadas? As pendentes ficam depois, na ordem atual.`)){ usarOrdemVisitada(e); desenhar(); } }
     else if (c === 'otimizar'){ const e = etapaPorId(id); if (e){ snapshot(); otimizarEtapa(e); e.ordem = 'auto'; changed(); toast('Ordem otimizada.', true); } }
     else if (c === 'plano') abrirPlanejamento();
     else if (c === 'relatorios' || c === 'equipe') abrir({v:c}, 'alta');

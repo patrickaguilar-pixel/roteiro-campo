@@ -121,10 +121,10 @@ function normaliza(s){
   const visto = new Set(), ok = x => x && EST[x.id] && !visto.has(x.id) && visto.add(x.id);
   s.cfg = {...DEF_CFG, ...(s.cfg || {})};
   s.etapas = (s.etapas || []).map(e => ({id:e.id || 'e' + uid(), nome:e.nome || 'Etapa', cor:e.cor || CORES[0], inicio:e.inicio || '', dias:e.dias || null,
-    stops:(e.stops || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []})),
+    stops:(e.stops || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, fts:x.feito ? (+x.fts || 0) : 0, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []})),
     pern:Object.fromEntries(Object.entries(e.pern || {}).filter(([k, v]) => EST[k] && MUN[v])), ordem: e.ordem === 'manual' ? 'manual' : 'auto'}));
   s.vista = s.vista === 'mun' ? 'mun' : 'est';
-  s.pool = (s.pool || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []}));
+  s.pool = (s.pool || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, fts:x.feito ? (+x.fts || 0) : 0, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []}));
   /* versão anterior: as duas estações de uma mesma linha do Anexo eram um só ponto; a segunda entra logo depois da primeira */
   const irma = lst => { for (let i = lst.length - 1; i >= 0; i--){ const b = lst[i].id + 'b'; if (EST[b] && !visto.has(b)){ visto.add(b); lst.splice(i + 1, 0, {...novaStop(b), fixo: lst[i].fixo}); s.migrouPares = (s.migrouPares || 0) + 1; } } };
   s.etapas.forEach(e => irma(e.stops)); irma(s.pool);
@@ -155,7 +155,7 @@ let avisouCheio = false;
 /* Carimbo de tempo por estação e por registro: permite juntar, sem perder nada, alterações feitas ao mesmo tempo
    em aparelhos diferentes (cada estação/registro fica com a versão alterada por último). */
 let ANT = null;
-const chaveParada = x => JSON.stringify([x.visita ?? null, x.extra ?? null, x.nota || '', x.feito || null, x.relato || '', x.sit || '', !!x.fixo, (x.fotos || []).map(f => f.id + '|' + (f.legenda || ''))]);
+const chaveParada = x => JSON.stringify([x.visita ?? null, x.extra ?? null, x.nota || '', x.feito || null, x.fts || 0, x.relato || '', x.sit || '', !!x.fixo, (x.fotos || []).map(f => f.id + '|' + (f.legenda || ''))]);
 const SITUACOES = {ok:'Funcionando', manut:'Precisa de manutenção', acesso:'Sem acesso / não encontrada'};
 const chaveApoio = a => { const {_t, ...r} = a; return JSON.stringify(r); };
 function indiceTempos(st){ const p = {}, a = {}, f = {};
@@ -1006,7 +1006,7 @@ function moverPara(id, destId){
 function marcarVisita(id, valor){
   buildLOC(); const w = LOC[id]; if (!w || !w.e) return;
   const novo = valor !== undefined ? valor : !w.s.feito;
-  snapshot(); w.s.feito = novo ? new Date().toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : null;
+  snapshot(); w.s.feito = novo ? new Date().toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : null; w.s.fts = novo ? Date.now() : 0;
   editRelato = novo ? id : (editRelato === id ? null : editRelato);
   changed(); toast(novo ? `${EST[id].nome} marcada como visitada. Registre as anotações da visita no quadro aberto.` : `Visita de ${EST[id].nome} desmarcada.`, true);
   if (novo){ const ta0 = lista.querySelector(`[data-relato="${id}"] textarea`); if (ta0) ta0.focus({preventScroll:true}); }
@@ -1483,6 +1483,7 @@ function abrirCrono(){
   });
   const soltos = state.apoios.filter(a => !etapaPorId(a.etapa));
   h += tabelaApoios(soltos, 'Hospedagens e paradas sem etapa', '#5E6B66', false);
+  h += secaoOrdemRel();
   h += secaoTrajetosRel();
   document.getElementById('dRelTit').textContent = 'Relatório completo do roteiro';
   document.getElementById('relCorpo').innerHTML = state.etapas.length ? h : '<p class="vazio">Nenhuma etapa montada ainda.</p>';

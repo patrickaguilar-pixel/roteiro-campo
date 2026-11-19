@@ -352,6 +352,41 @@ function baixarTrajetos(fmt, id){
   const nome = `rotas_percorridas_${hojeISO()}${id ? '_' + id : ''}`;
   if (fmt === 'gpx') baixar(nome + '.gpx', gpxDe(lista), 'application/gpx+xml'); else baixar(nome + '.kml', kmlDe(lista), 'application/vnd.google-earth.kml+xml');
 }
+/* ---- ordem realizada: as visitas na ordem em que o "Cheguei" foi marcado ---- */
+function tsVisita(s, e){
+  if (!s.feito) return 0; if (s.fts) return s.fts;
+  const m = /(\d{2})\/(\d{2}),?\s*(?:às\s*)?(\d{2}):(\d{2})/.exec(s.feito); if (!m) return 0;   // visitas antigas: "19/11, 08:18" (sem ano)
+  const ano = e && e.inicio ? +e.inicio.slice(0, 4) : new Date().getFullYear();
+  return new Date(ano, +m[2] - 1, +m[1], +m[3], +m[4]).getTime();
+}
+function ordemRealizada(e){   // e = uma etapa, ou nada para todas
+  const L = (e ? [e] : state.etapas).flatMap(et => et.stops.map((s, k) => ({e:et, s, k, t:tsVisita(s, et)}))).filter(x => x.t);
+  return L.sort((a, b) => a.t - b.t || a.k - b.k);
+}
+/* visitadas na ordem do "Cheguei"; as duas estações do mesmo local (F e P, "xxb") andam juntas, na hora da primeira visita do par */
+function ordemAlvo(e){
+  const grp = id => id.endsWith('b') && EST[id.slice(0, -1)] ? id.slice(0, -1) : id;
+  const L = ordemRealizada(e), t0 = {};
+  L.forEach(x => { const g = grp(x.s.id); t0[g] = Math.min(t0[g] ?? Infinity, x.t); });
+  return L.map(x => x.s).sort((a, b) => t0[grp(a.id)] - t0[grp(b.id)] || (grp(a.id) === grp(b.id) ? (a.id.endsWith('b') ? 1 : -1) : 0));
+}
+function foraDaOrdem(e){ const alvo = ordemAlvo(e), set = new Set(alvo); return e.stops.filter(s => set.has(s)).some((s, i) => s !== alvo[i]); }
+function usarOrdemVisitada(e){
+  const vis = ordemAlvo(e); if (!vis.length) return false;
+  const set = new Set(vis), resto = e.stops.filter(s => !set.has(s));
+  snapshot(); e.stops = [...vis, ...resto]; e.ordem = 'manual'; changed();
+  toast(`${e.nome}: ordem trocada pela ordem em que as estações foram visitadas (${vis.length}). As pendentes continuam depois, na ordem que estavam.`, true);
+  return true;
+}
+const fmtTsVisita = t => new Date(t).toLocaleString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}).replace(',', '');
+function secaoOrdemRel(){
+  const L = ordemRealizada(); if (!L.length) return '';
+  return `<h3 class="rel-etapa" style="--c:#2E9E5B">Ordem realizada das visitas<span>${L.length} ${L.length === 1 ? 'visita' : 'visitas'}, na ordem em que o "Cheguei" foi marcado · "No roteiro" é a posição atual na etapa</span></h3>
+    <table class="rel"><caption style="--c:#2E9E5B">Visitas na ordem em que aconteceram</caption><thead><tr><th>Nº</th><th>Data e hora</th><th>Estação</th><th>Município</th><th>Etapa</th><th>No roteiro</th><th>Situação</th></tr></thead><tbody>
+    ${L.map((x, i) => { const inf = P[x.e.id] && P[x.e.id].info[x.k];
+      return `<tr><td class="n">${i + 1}</td><td class="nw">${esc(fmtTsVisita(x.t))}</td><td><b>${esc(EST[x.s.id].nome)}</b></td><td>${esc(estMun(EST[x.s.id]))}</td><td class="nw">${esc(x.e.nome)}</td><td class="nw">nº ${x.k + 1}${inf ? ` · dia ${inf.d + 1}` : ''}</td><td>${x.s.sit ? SITUACOES[x.s.sit] : '–'}</td></tr>`; }).join('')}
+    </tbody></table>`;
+}
 function secaoTrajetosRel(){
   if (!GRV.lista.length) return '';
   const tot = GRV.lista.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
@@ -432,7 +467,8 @@ function registrarApoioAqui(tipo){
 /* ---------------- tela "Registros" ---------------- */
 function htmlRegistros(){
   const fotos = todasFotos().sort((a, b) => (b.f.data || '').localeCompare(a.f.data || ''));
-  const visitas = state.etapas.flatMap(e => e.stops.filter(s => s.feito).map(s => ({e, s})));
+  const visitas = ordemRealizada();
+  const fora = state.etapas.filter(foraDaOrdem);
   const tot = state.etapas.reduce((a, e) => a + e.stops.length, 0);
   const T = totaisGerais(), totTrj = GRV.lista.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
   return `<div class="rg-resumo">
@@ -444,8 +480,9 @@ function htmlRegistros(){
           <div class="rg-bt"><button type="button" class="btn" data-rg="ver" data-id="${t.id}">Ver</button><button type="button" class="btn" data-rg="gpx" data-id="${t.id}">GPX</button><button type="button" class="btn" data-rg="nome" data-id="${t.id}">Detalhes</button><button type="button" class="btn qd perigo" data-rg="excluir" data-id="${t.id}" aria-label="Excluir rota">${svgI('lixo')}</button></div></li>`).join('')}</ul>
         <div class="rg-baixar"><button type="button" class="btn" data-rg="importar">${svgI('baixar')}<span>Importar rota (GPX)</span></button><button type="button" class="btn" data-rg="todas-gpx">${svgI('baixar')}<span>Todas (GPX)</span></button><button type="button" class="btn" data-rg="todas-kml">${svgI('baixar')}<span>Todas (KML, Google Earth)</span></button></div>`
         : `<div class="rg-baixar"><button type="button" class="btn" data-rg="importar">${svgI('baixar')}<span>Importar rota (GPX)</span></button></div><p class="vazio">Nenhuma rota gravada ainda. Em "Em campo", toque em <b>Gravar rota</b> ao sair: o caminho feito, os km e o tempo ficam registrados ${EM_NUVEM ? 'no app e na nuvem da equipe' : 'neste aparelho'}. Para gravar com a tela apagada, use um app de GPS em segundo plano (ex.: GPSLogger) e importe o arquivo GPX aqui.</p>`}</section>
-    <section class="rg-sec"><div class="rg-t"><h3>Visitas</h3></div>
-      ${visitas.length ? `<ul class="rg-vis">${visitas.slice(-30).reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-rg="est" data-id="${s.id}"><b>${esc(EST[s.id].nome)}</b> ${tipoBadge(EST[s.id])}<small>${esc(s.feito)} · ${esc(e.nome)}${(s.fotos || []).length ? ` · ${s.fotos.length} foto(s)` : ''}${s.relato ? ' · com anotação' : ''}</small></button></li>`).join('')}</ul>` : '<p class="vazio">Nenhuma visita marcada ainda.</p>'}</section>
+    <section class="rg-sec"><div class="rg-t"><h3>Visitas · ordem realizada</h3></div>
+      ${fora.map(e => `<p class="rg-ordem" style="--c:${e.cor}"><b>${esc(e.nome)}</b> foi visitada fora da ordem planejada. <button type="button" class="btn" data-rg="usar-ordem" data-id="${e.id}">Usar a ordem em que visitei</button></p>`).join('')}
+      ${visitas.length ? `<ol class="rg-vis">${visitas.map((x, i) => ({...x, n: i + 1})).slice(-40).reverse().map(({e, s, k, t, n}) => `<li style="--c:${e.cor}"><button type="button" data-rg="est" data-id="${s.id}"><b>${n}. ${esc(EST[s.id].nome)}</b> ${tipoBadge(EST[s.id])}<small>${esc(fmtTsVisita(t))} · ${esc(e.nome)} · nº ${k + 1} no roteiro${(s.fotos || []).length ? ` · ${s.fotos.length} foto(s)` : ''}${s.relato ? ' · com anotação' : ''}</small></button></li>`).join('')}</ol>` : '<p class="vazio">Nenhuma visita marcada ainda.</p>'}</section>
     <section class="rg-sec"><div class="rg-t"><h3>Fotos</h3>${fotos.length ? '<button type="button" class="btn" data-rg="zip">Baixar todas (ZIP)</button>' : ''}</div>
       ${fotos.length ? `<div class="rg-fotos">${fotos.slice(0, 24).map(x => `<button type="button" class="th" data-ver-foto="${x.s.id}|${x.f.id}" title="${esc(EST[x.s.id].nome)}"><img data-foto="${x.f.id}" alt="Foto de ${esc(EST[x.s.id].nome)}"></button>`).join('')}</div>` : '<p class="vazio">As fotos tiradas nas visitas aparecem aqui, com GPS gravado.</p>'}</section>
     <section class="rg-sec"><div class="rg-baixar"><button type="button" class="btn" data-rg="rel">${svgI('rel')}<span>Relatório completo</span></button></div></section>`;
@@ -523,6 +560,7 @@ telaCorpo.addEventListener('click', ev => {
   else if (rg === 'excluir') excluirTrajeto(id);
   else if (rg === 'todas-gpx') baixarTrajetos('gpx');
   else if (rg === 'todas-kml') baixarTrajetos('kml');
+  else if (rg === 'usar-ordem'){ const e = etapaPorId(id); if (e && confirm(`Trocar a ordem de ${e.nome} pela ordem em que as estações foram visitadas? As pendentes ficam depois, na ordem atual. Dá para desfazer.`)) usarOrdemVisitada(e); }
   else if (rg === 'est'){ if (mobile()) irAba('mapa'); verPonto(ll(id), Math.max(map.getZoom(), 13)); setTimeout(() => popupEst(id, L.latLng(ll(id))), 300); }
   else if (rg === 'zip') baixarFotosZip();
   else if (rg === 'rel-gastos') abrirGastos();

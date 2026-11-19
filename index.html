@@ -2081,6 +2081,21 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
 .ficha-trj dd{margin:0;color:#1C2623}
 .dt-bts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
 .dt-bts .btn{height:48px;justify-content:center}
+/* v34: ordem realizada */
+@media (max-width:760px){
+.o-aviso{display:grid;gap:8px;margin:0 0 12px;padding:12px;border-radius:14px;background:#FFF6E5;border-left:4px solid var(--c)}
+.o-aviso p{margin:0;font-size:14px;color:#5C4400}
+.o-lista{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
+.o-dia{margin:8px 0 0;font:700 12px/1.2 var(--corpo);letter-spacing:.04em;text-transform:uppercase;color:var(--cinza)}
+.o-it{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #E3E8E6;border-left:4px solid var(--c);border-radius:12px;background:#fff}
+.o-n{flex:none;width:30px;height:30px;border-radius:50%;background:#2E9E5B;color:#fff;display:grid;place-items:center;font:700 14px/1 var(--titulo)}
+.o-it button{flex:1;min-width:0;border:0;background:none;text-align:left;display:grid;gap:3px;padding:2px 0;color:var(--tinta)}
+.o-it b{font:600 15px/1.25 var(--corpo)}
+.o-it small{font-size:12.5px;color:var(--cinza)}
+.o-it .c-sit{justify-self:start}
+}
+.rg-ordem{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#FFF6E5;border-left:4px solid var(--c);font-size:13.5px}
+ol.rg-vis{list-style:none;padding:0}
 </style>
 </head>
 <body>
@@ -2222,7 +2237,7 @@ html[data-folha=alta] #cGrav,html[data-folha=alta] #cFlut{display:none}
     </div>
     <datalist id="listaEst"></datalist>
     <datalist id="todos"></datalist>
-    <div class="creditos"><b class="versao" id="versao">Versão 33 · app · 18/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
+    <div class="creditos"><b class="versao" id="versao">Versão 34 · app · 19/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
   </aside>
   <main id="mapa" aria-label="Mapa da rota"></main>
 </div>
@@ -4834,7 +4849,7 @@ RC.trj = TRJ;
 /* ---------- mesclagem: cada estação e cada registro (hospedagem, parada, gasto) fica com a versão alterada por
    último (carimbo _t gravado pelo app a cada alteração); fotos de uma mesma estação se somam; exclusões valem. ---------- */
 const J = v => JSON.stringify(v === undefined ? null : v);
-const CAMPOS_PARADA = ['visita', 'extra', 'nota', 'feito', 'relato', 'sit', 'fixo', 'fotos', '_t'];
+const CAMPOS_PARADA = ['visita', 'extra', 'nota', 'feito', 'fts', 'relato', 'sit', 'fixo', 'fotos', '_t'];
 function mesclar(loc, rem){
   const locNovo = (loc.mod || 0) >= (rem.mod || 0);
   const est = JSON.parse(JSON.stringify(locNovo ? loc : rem));
@@ -5382,10 +5397,10 @@ function normaliza(s){
   const visto = new Set(), ok = x => x && EST[x.id] && !visto.has(x.id) && visto.add(x.id);
   s.cfg = {...DEF_CFG, ...(s.cfg || {})};
   s.etapas = (s.etapas || []).map(e => ({id:e.id || 'e' + uid(), nome:e.nome || 'Etapa', cor:e.cor || CORES[0], inicio:e.inicio || '', dias:e.dias || null,
-    stops:(e.stops || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []})),
+    stops:(e.stops || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, fts:x.feito ? (+x.fts || 0) : 0, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []})),
     pern:Object.fromEntries(Object.entries(e.pern || {}).filter(([k, v]) => EST[k] && MUN[v])), ordem: e.ordem === 'manual' ? 'manual' : 'auto'}));
   s.vista = s.vista === 'mun' ? 'mun' : 'est';
-  s.pool = (s.pool || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []}));
+  s.pool = (s.pool || []).filter(ok).map(x => ({id:x.id, visita:x.visita ?? null, extra: x.extra > 0 ? +x.extra : null, nota:x.nota || '', feito:x.feito || null, fts:x.feito ? (+x.fts || 0) : 0, relato:x.relato || '', sit:x.sit || '', fixo:!!x.fixo, _t:x._t || 0, fotos: Array.isArray(x.fotos) ? x.fotos.filter(f => f && f.id && isFinite(f.lat)) : []}));
   /* versão anterior: as duas estações de uma mesma linha do Anexo eram um só ponto; a segunda entra logo depois da primeira */
   const irma = lst => { for (let i = lst.length - 1; i >= 0; i--){ const b = lst[i].id + 'b'; if (EST[b] && !visto.has(b)){ visto.add(b); lst.splice(i + 1, 0, {...novaStop(b), fixo: lst[i].fixo}); s.migrouPares = (s.migrouPares || 0) + 1; } } };
   s.etapas.forEach(e => irma(e.stops)); irma(s.pool);
@@ -5416,7 +5431,7 @@ let avisouCheio = false;
 /* Carimbo de tempo por estação e por registro: permite juntar, sem perder nada, alterações feitas ao mesmo tempo
    em aparelhos diferentes (cada estação/registro fica com a versão alterada por último). */
 let ANT = null;
-const chaveParada = x => JSON.stringify([x.visita ?? null, x.extra ?? null, x.nota || '', x.feito || null, x.relato || '', x.sit || '', !!x.fixo, (x.fotos || []).map(f => f.id + '|' + (f.legenda || ''))]);
+const chaveParada = x => JSON.stringify([x.visita ?? null, x.extra ?? null, x.nota || '', x.feito || null, x.fts || 0, x.relato || '', x.sit || '', !!x.fixo, (x.fotos || []).map(f => f.id + '|' + (f.legenda || ''))]);
 const SITUACOES = {ok:'Funcionando', manut:'Precisa de manutenção', acesso:'Sem acesso / não encontrada'};
 const chaveApoio = a => { const {_t, ...r} = a; return JSON.stringify(r); };
 function indiceTempos(st){ const p = {}, a = {}, f = {};
@@ -6267,7 +6282,7 @@ function moverPara(id, destId){
 function marcarVisita(id, valor){
   buildLOC(); const w = LOC[id]; if (!w || !w.e) return;
   const novo = valor !== undefined ? valor : !w.s.feito;
-  snapshot(); w.s.feito = novo ? new Date().toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : null;
+  snapshot(); w.s.feito = novo ? new Date().toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : null; w.s.fts = novo ? Date.now() : 0;
   editRelato = novo ? id : (editRelato === id ? null : editRelato);
   changed(); toast(novo ? `${EST[id].nome} marcada como visitada. Registre as anotações da visita no quadro aberto.` : `Visita de ${EST[id].nome} desmarcada.`, true);
   if (novo){ const ta0 = lista.querySelector(`[data-relato="${id}"] textarea`); if (ta0) ta0.focus({preventScroll:true}); }
@@ -6744,6 +6759,7 @@ function abrirCrono(){
   });
   const soltos = state.apoios.filter(a => !etapaPorId(a.etapa));
   h += tabelaApoios(soltos, 'Hospedagens e paradas sem etapa', '#5E6B66', false);
+  h += secaoOrdemRel();
   h += secaoTrajetosRel();
   document.getElementById('dRelTit').textContent = 'Relatório completo do roteiro';
   document.getElementById('relCorpo').innerHTML = state.etapas.length ? h : '<p class="vazio">Nenhuma etapa montada ainda.</p>';
@@ -8638,6 +8654,41 @@ function baixarTrajetos(fmt, id){
   const nome = `rotas_percorridas_${hojeISO()}${id ? '_' + id : ''}`;
   if (fmt === 'gpx') baixar(nome + '.gpx', gpxDe(lista), 'application/gpx+xml'); else baixar(nome + '.kml', kmlDe(lista), 'application/vnd.google-earth.kml+xml');
 }
+/* ---- ordem realizada: as visitas na ordem em que o "Cheguei" foi marcado ---- */
+function tsVisita(s, e){
+  if (!s.feito) return 0; if (s.fts) return s.fts;
+  const m = /(\d{2})\/(\d{2}),?\s*(?:às\s*)?(\d{2}):(\d{2})/.exec(s.feito); if (!m) return 0;   // visitas antigas: "19/11, 08:18" (sem ano)
+  const ano = e && e.inicio ? +e.inicio.slice(0, 4) : new Date().getFullYear();
+  return new Date(ano, +m[2] - 1, +m[1], +m[3], +m[4]).getTime();
+}
+function ordemRealizada(e){   // e = uma etapa, ou nada para todas
+  const L = (e ? [e] : state.etapas).flatMap(et => et.stops.map((s, k) => ({e:et, s, k, t:tsVisita(s, et)}))).filter(x => x.t);
+  return L.sort((a, b) => a.t - b.t || a.k - b.k);
+}
+/* visitadas na ordem do "Cheguei"; as duas estações do mesmo local (F e P, "xxb") andam juntas, na hora da primeira visita do par */
+function ordemAlvo(e){
+  const grp = id => id.endsWith('b') && EST[id.slice(0, -1)] ? id.slice(0, -1) : id;
+  const L = ordemRealizada(e), t0 = {};
+  L.forEach(x => { const g = grp(x.s.id); t0[g] = Math.min(t0[g] ?? Infinity, x.t); });
+  return L.map(x => x.s).sort((a, b) => t0[grp(a.id)] - t0[grp(b.id)] || (grp(a.id) === grp(b.id) ? (a.id.endsWith('b') ? 1 : -1) : 0));
+}
+function foraDaOrdem(e){ const alvo = ordemAlvo(e), set = new Set(alvo); return e.stops.filter(s => set.has(s)).some((s, i) => s !== alvo[i]); }
+function usarOrdemVisitada(e){
+  const vis = ordemAlvo(e); if (!vis.length) return false;
+  const set = new Set(vis), resto = e.stops.filter(s => !set.has(s));
+  snapshot(); e.stops = [...vis, ...resto]; e.ordem = 'manual'; changed();
+  toast(`${e.nome}: ordem trocada pela ordem em que as estações foram visitadas (${vis.length}). As pendentes continuam depois, na ordem que estavam.`, true);
+  return true;
+}
+const fmtTsVisita = t => new Date(t).toLocaleString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}).replace(',', '');
+function secaoOrdemRel(){
+  const L = ordemRealizada(); if (!L.length) return '';
+  return `<h3 class="rel-etapa" style="--c:#2E9E5B">Ordem realizada das visitas<span>${L.length} ${L.length === 1 ? 'visita' : 'visitas'}, na ordem em que o "Cheguei" foi marcado · "No roteiro" é a posição atual na etapa</span></h3>
+    <table class="rel"><caption style="--c:#2E9E5B">Visitas na ordem em que aconteceram</caption><thead><tr><th>Nº</th><th>Data e hora</th><th>Estação</th><th>Município</th><th>Etapa</th><th>No roteiro</th><th>Situação</th></tr></thead><tbody>
+    ${L.map((x, i) => { const inf = P[x.e.id] && P[x.e.id].info[x.k];
+      return `<tr><td class="n">${i + 1}</td><td class="nw">${esc(fmtTsVisita(x.t))}</td><td><b>${esc(EST[x.s.id].nome)}</b></td><td>${esc(estMun(EST[x.s.id]))}</td><td class="nw">${esc(x.e.nome)}</td><td class="nw">nº ${x.k + 1}${inf ? ` · dia ${inf.d + 1}` : ''}</td><td>${x.s.sit ? SITUACOES[x.s.sit] : '–'}</td></tr>`; }).join('')}
+    </tbody></table>`;
+}
 function secaoTrajetosRel(){
   if (!GRV.lista.length) return '';
   const tot = GRV.lista.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
@@ -8718,7 +8769,8 @@ function registrarApoioAqui(tipo){
 /* ---------------- tela "Registros" ---------------- */
 function htmlRegistros(){
   const fotos = todasFotos().sort((a, b) => (b.f.data || '').localeCompare(a.f.data || ''));
-  const visitas = state.etapas.flatMap(e => e.stops.filter(s => s.feito).map(s => ({e, s})));
+  const visitas = ordemRealizada();
+  const fora = state.etapas.filter(foraDaOrdem);
   const tot = state.etapas.reduce((a, e) => a + e.stops.length, 0);
   const T = totaisGerais(), totTrj = GRV.lista.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
   return `<div class="rg-resumo">
@@ -8730,8 +8782,9 @@ function htmlRegistros(){
           <div class="rg-bt"><button type="button" class="btn" data-rg="ver" data-id="${t.id}">Ver</button><button type="button" class="btn" data-rg="gpx" data-id="${t.id}">GPX</button><button type="button" class="btn" data-rg="nome" data-id="${t.id}">Detalhes</button><button type="button" class="btn qd perigo" data-rg="excluir" data-id="${t.id}" aria-label="Excluir rota">${svgI('lixo')}</button></div></li>`).join('')}</ul>
         <div class="rg-baixar"><button type="button" class="btn" data-rg="importar">${svgI('baixar')}<span>Importar rota (GPX)</span></button><button type="button" class="btn" data-rg="todas-gpx">${svgI('baixar')}<span>Todas (GPX)</span></button><button type="button" class="btn" data-rg="todas-kml">${svgI('baixar')}<span>Todas (KML, Google Earth)</span></button></div>`
         : `<div class="rg-baixar"><button type="button" class="btn" data-rg="importar">${svgI('baixar')}<span>Importar rota (GPX)</span></button></div><p class="vazio">Nenhuma rota gravada ainda. Em "Em campo", toque em <b>Gravar rota</b> ao sair: o caminho feito, os km e o tempo ficam registrados ${EM_NUVEM ? 'no app e na nuvem da equipe' : 'neste aparelho'}. Para gravar com a tela apagada, use um app de GPS em segundo plano (ex.: GPSLogger) e importe o arquivo GPX aqui.</p>`}</section>
-    <section class="rg-sec"><div class="rg-t"><h3>Visitas</h3></div>
-      ${visitas.length ? `<ul class="rg-vis">${visitas.slice(-30).reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-rg="est" data-id="${s.id}"><b>${esc(EST[s.id].nome)}</b> ${tipoBadge(EST[s.id])}<small>${esc(s.feito)} · ${esc(e.nome)}${(s.fotos || []).length ? ` · ${s.fotos.length} foto(s)` : ''}${s.relato ? ' · com anotação' : ''}</small></button></li>`).join('')}</ul>` : '<p class="vazio">Nenhuma visita marcada ainda.</p>'}</section>
+    <section class="rg-sec"><div class="rg-t"><h3>Visitas · ordem realizada</h3></div>
+      ${fora.map(e => `<p class="rg-ordem" style="--c:${e.cor}"><b>${esc(e.nome)}</b> foi visitada fora da ordem planejada. <button type="button" class="btn" data-rg="usar-ordem" data-id="${e.id}">Usar a ordem em que visitei</button></p>`).join('')}
+      ${visitas.length ? `<ol class="rg-vis">${visitas.map((x, i) => ({...x, n: i + 1})).slice(-40).reverse().map(({e, s, k, t, n}) => `<li style="--c:${e.cor}"><button type="button" data-rg="est" data-id="${s.id}"><b>${n}. ${esc(EST[s.id].nome)}</b> ${tipoBadge(EST[s.id])}<small>${esc(fmtTsVisita(t))} · ${esc(e.nome)} · nº ${k + 1} no roteiro${(s.fotos || []).length ? ` · ${s.fotos.length} foto(s)` : ''}${s.relato ? ' · com anotação' : ''}</small></button></li>`).join('')}</ol>` : '<p class="vazio">Nenhuma visita marcada ainda.</p>'}</section>
     <section class="rg-sec"><div class="rg-t"><h3>Fotos</h3>${fotos.length ? '<button type="button" class="btn" data-rg="zip">Baixar todas (ZIP)</button>' : ''}</div>
       ${fotos.length ? `<div class="rg-fotos">${fotos.slice(0, 24).map(x => `<button type="button" class="th" data-ver-foto="${x.s.id}|${x.f.id}" title="${esc(EST[x.s.id].nome)}"><img data-foto="${x.f.id}" alt="Foto de ${esc(EST[x.s.id].nome)}"></button>`).join('')}</div>` : '<p class="vazio">As fotos tiradas nas visitas aparecem aqui, com GPS gravado.</p>'}</section>
     <section class="rg-sec"><div class="rg-baixar"><button type="button" class="btn" data-rg="rel">${svgI('rel')}<span>Relatório completo</span></button></div></section>`;
@@ -8809,6 +8862,7 @@ telaCorpo.addEventListener('click', ev => {
   else if (rg === 'excluir') excluirTrajeto(id);
   else if (rg === 'todas-gpx') baixarTrajetos('gpx');
   else if (rg === 'todas-kml') baixarTrajetos('kml');
+  else if (rg === 'usar-ordem'){ const e = etapaPorId(id); if (e && confirm(`Trocar a ordem de ${e.nome} pela ordem em que as estações foram visitadas? As pendentes ficam depois, na ordem atual. Dá para desfazer.`)) usarOrdemVisitada(e); }
   else if (rg === 'est'){ if (mobile()) irAba('mapa'); verPonto(ll(id), Math.max(map.getZoom(), 13)); setTimeout(() => popupEst(id, L.latLng(ll(id))), 300); }
   else if (rg === 'zip') baixarFotosZip();
   else if (rg === 'rel-gastos') abrirGastos();
@@ -9199,9 +9253,20 @@ if (CELULAR){
     const seg = (k, n) => `<button type="button" data-c="seg" data-v="${k}" aria-pressed="${regSeg === k}">${n}</button>`;
     let h = cab('Registros', '') + `<div class="c-seg">${seg('visitas', 'Visitas')}${seg('fotos', 'Fotos')}${seg('rotas', 'Rotas')}</div>`;
     if (regSeg === 'visitas'){
-      const v = state.etapas.flatMap(e => e.stops.filter(s => s.feito || s.relato || s.sit || (s.fotos || []).length).map(s => ({e, s})));
-      h += v.length ? `<ul class="c-vis">${v.reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-c="estacao" data-id="${s.id}"><b>${esc(EST[s.id].nome)} ${tipoBadge(EST[s.id])}</b>
-          <small>${s.feito ? `Visitada ${esc(quando(s))}` : 'Não marcada como visitada'} · ${esc(e.nome)}</small><span class="c-tags">${s.sit ? `<span class="c-sit s-${s.sit}">${SITUACOES[s.sit]}</span>` : ''}${(s.fotos || []).length ? `<span class="c-tag">${s.fotos.length} foto(s)</span>` : ''}${s.relato ? '<span class="c-tag">anotação</span>' : ''}</span></button></li>`).join('')}</ul>` : vazio('As visitas registradas aparecem aqui.');
+      /* ordem realizada: numeradas na ordem do "Cheguei", separadas por dia; depois as que têm registro mas não foram marcadas */
+      const feitas = ordemRealizada().map((x, i) => ({...x, n: i + 1}));
+      const semMarca = state.etapas.flatMap(e => e.stops.filter(s => !s.feito && (s.relato || s.sit || (s.fotos || []).length)).map(s => ({e, s})));
+      const fora = state.etapas.filter(foraDaOrdem);
+      h += fora.map(e => `<div class="o-aviso" style="--c:${e.cor}"><p><b>${esc(e.nome)}</b> foi visitada em outra ordem.</p><button type="button" class="c-bt" data-c="usar-ordem" data-id="${e.id}">Usar a ordem em que visitei</button></div>`).join('');
+      let dia0 = '';
+      h += feitas.length ? `<p class="c-rot">Ordem realizada · ${feitas.length} ${feitas.length === 1 ? 'visita' : 'visitas'}</p><ol class="o-lista">${feitas.map(x => {
+          const d = new Date(x.t).toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'2-digit'}), hora = new Date(x.t).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+          const cabD = d !== dia0 ? `<li class="o-dia">${esc(d)}</li>` : ''; dia0 = d; const inf = P[x.e.id] && P[x.e.id].info[x.k];
+          return cabD + `<li class="o-it" style="--c:${x.e.cor}"><span class="o-n">${x.n}</span><button type="button" data-c="estacao" data-id="${x.s.id}"><b>${esc(EST[x.s.id].nome)} ${tipoBadge(EST[x.s.id])}</b>
+            <small>${hora} · ${esc(x.e.nome)} · nº ${x.k + 1} no roteiro${inf ? ` (dia ${inf.d + 1})` : ''}</small>${x.s.sit ? `<span class="c-sit s-${x.s.sit}">${SITUACOES[x.s.sit]}</span>` : ''}</button></li>`; }).join('')}</ol>` : '';
+      const v = semMarca;
+      h += v.length ? `<p class="c-rot">Com registro, sem "Cheguei"</p><ul class="c-vis">${v.reverse().map(({e, s}) => `<li style="--c:${e.cor}"><button type="button" data-c="estacao" data-id="${s.id}"><b>${esc(EST[s.id].nome)} ${tipoBadge(EST[s.id])}</b>
+          <small>Não marcada como visitada · ${esc(e.nome)}</small><span class="c-tags">${s.sit ? `<span class="c-sit s-${s.sit}">${SITUACOES[s.sit]}</span>` : ''}${(s.fotos || []).length ? `<span class="c-tag">${s.fotos.length} foto(s)</span>` : ''}${s.relato ? '<span class="c-tag">anotação</span>' : ''}</span></button></li>`).join('')}</ul>` : (feitas.length ? '' : vazio('As visitas aparecem aqui, numeradas na ordem em que você marcar "Cheguei".'));
     } else if (regSeg === 'fotos'){
       const fotos = todasFotos().sort((a, b) => (b.f.data || '').localeCompare(a.f.data || ''));
       h += fotos.length ? `<div class="c-galeria">${fotos.map(x => `<button type="button" data-ver-foto="${x.s.id}|${x.f.id}"><img data-foto="${x.f.id}" alt=""><span>${esc(EST[x.s.id].nome)}</span></button>`).join('')}</div><button type="button" class="c-bt largo" data-c="zip">${svgI('baixar')}<span>Baixar todas (ZIP com GPS)</span></button>` : vazio('As fotos tiradas nas visitas aparecem aqui.');
@@ -9233,7 +9298,8 @@ if (CELULAR){
     const e = etapaPorId(id); if (!e) return telaEtapas();
     const p = P[e.id];
     let h = cab(esc(e.nome), p ? `${e.stops.length} estações · ${p.days.length} dias · ${fmtKm(p.tot.km)} km` : '');
-    h += `<div class="c-linha"><label class="c-campo">Data de início<input type="date" data-c="inicio" data-id="${e.id}" value="${e.inicio || ''}"></label><button type="button" class="c-bt" data-c="otimizar" data-id="${e.id}">Otimizar ordem</button></div>`;
+    h += `<div class="c-linha"><label class="c-campo">Data de início<input type="date" data-c="inicio" data-id="${e.id}" value="${e.inicio || ''}"></label><button type="button" class="c-bt" data-c="otimizar" data-id="${e.id}">Otimizar ordem</button></div>
+      ${ordemRealizada(e).length ? `<button type="button" class="c-bt largo" data-c="usar-ordem" data-id="${e.id}">${svgI('ok')}<span>Usar a ordem em que visitei${foraDaOrdem(e) ? '' : ' (já está igual)'}</span></button>` : ''}`;
     if (p) h += p.days.map((D, d) => { const g = gmPlano(e, D), ks = []; for (let k = D.i; k < D.j; k++) ks.push(k);
       return `<div class="c-dd2"><button type="button" class="c-dd2-t" data-c="dia-ir" data-id="${e.id}" data-d="${d}"><b>Dia ${d + 1}${D.data ? ` · ${esc(fmtDS(D.data))}` : ''}</b><span>${ks.map(k => esc(EST[e.stops[k].id].nome)).join(' → ')}</span><small>${fmtKm(D.km)} km · ${fmtHora(D.saida)}–${fmtHora(D.chegada)} · ${D.to === BH ? 'volta a BH' : 'dorme em ' + esc(MUN[D.to].n)}</small></button>
         <a class="c-red" href="${g.partes[0].url}" target="_blank" rel="noopener" aria-label="Abrir no Google Maps">${IC.gm}</a></div>`; }).join('');
@@ -9314,6 +9380,7 @@ if (CELULAR){
     else if (c === 'seg'){ regSeg = b.dataset.v; desenhar(); }
     else if (c === 'etapas') abrir({v:'etapas'}, 'alta');
     else if (c === 'etapa-ver') abrir({v:'etapa', id}, 'alta');
+    else if (c === 'usar-ordem'){ const e = etapaPorId(id); if (e && confirm(`Trocar a ordem de ${e.nome} pela ordem em que as estações foram visitadas? As pendentes ficam depois, na ordem atual.`)){ usarOrdemVisitada(e); desenhar(); } }
     else if (c === 'otimizar'){ const e = etapaPorId(id); if (e){ snapshot(); otimizarEtapa(e); e.ordem = 'auto'; changed(); toast('Ordem otimizada.', true); } }
     else if (c === 'plano') abrirPlanejamento();
     else if (c === 'relatorios' || c === 'equipe') abrir({v:c}, 'alta');
