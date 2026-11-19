@@ -230,7 +230,7 @@ async function verificarAcesso(){
          <button type="button" class="en-bt" data-en="verificar">Verificar de novo</button>${btnSair}`);
     return;
   }
-  RC.papel = ficha.papel === 'admin' ? 'admin' : 'equipe';
+  RC.papel = (ficha.papel === 'admin' ? 'admin' : ficha.papel === 'coord' ? 'coord' : 'equipe');
   lsSet(K.acesso, {ok:true, uid:RC.user.uid, email:RC.email, nome:RC.nome, papel:RC.papel, t:Date.now()});
   entrar(false);
 }
@@ -245,7 +245,8 @@ document.addEventListener('click', ev => {
 /* ---------- entrada: traz os dados e abre o app ---------- */
 /* Cada pessoa tem o próprio espaço: contas/{email}. Administrador pode abrir o de outra pessoa só para ver (rc-ver). */
 async function apontarConta(){
-  const ver = lsGet('rc-ver'), dono = ver && RC.papel === 'admin' && ver !== RC.email ? ver : RC.email;
+  const ver = lsGet('rc-ver'), dono = ver && (RC.papel === 'admin' || RC.papel === 'coord') && ver !== RC.email ? ver : RC.email;
+  RC.verNome = (lsGet('rc-ver-nome') || {})[dono] || dono;
   RC.dono = dono; RC.leitura = dono !== RC.email;
   const base = db.collection('contas').doc(dono);
   ref.projetos = base.collection('projetos'); ref.trajetos = base.collection('trajetos');
@@ -256,9 +257,9 @@ async function apontarConta(){
     try { await TRJ.limpar(); } catch(e){} try { indexedDB.deleteDatabase('roteiro-rotas'); } catch(e){}
   }
   lsSet('rc-conta', dono);
+  document.documentElement.classList.toggle('rc-leitura', RC.leitura);
   if (RC.leitura){ const b = document.createElement('div'); b.id = 'rcLeitura';
-    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 64px);z-index:3000;background:#7B3FC4;color:#fff;padding:8px 12px;border-radius:12px;font:600 13px/1.3 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;max-width:92vw';
-    b.innerHTML = `<span>Vendo os dados de ${esc(dono)} · só leitura</span><button type="button" style="border:0;border-radius:8px;padding:6px 10px;font:700 12px system-ui;cursor:pointer">Voltar aos meus</button>`;
+    b.innerHTML = `<span class="rl-ico">👁</span><div><small>Você está vendo os dados de</small><b>${esc(RC.verNome)}</b></div><button type="button">Voltar aos meus</button>`;
     b.querySelector('button').onclick = () => { lsDel('rc-ver'); location.reload(); }; document.body.appendChild(b); }
   /* primeira vez com contas separadas: traz para a conta da pessoa os roteiros e as rotas dela que estavam no espaço comum */
   if (!RC.leitura && online()) try { await comTempo(migrar(dono), 25000); } catch(e){ if (e && e.code === 'permission-denied') RC.semRegras = true; }
@@ -329,7 +330,7 @@ function ligarSincronizacao(){
     if (d.metadata.fromCache) return;
     const f = d.exists ? d.data() : null;
     if (!f || f.ativo !== true){ limparAparelho(true).then(() => location.reload()); }
-    else { const p = f.papel === 'admin' ? 'admin' : 'equipe'; if (p !== RC.papel){ RC.papel = p; const a = lsGet(K.acesso); if (a){ a.papel = p; lsSet(K.acesso, a); } RC.avisar(); } }
+    else { const p = f.papel === 'admin' ? 'admin' : f.papel === 'coord' ? 'coord' : 'equipe'; if (p !== RC.papel){ RC.papel = p; const a = lsGet(K.acesso); if (a){ a.papel = p; lsSet(K.acesso, a); } RC.avisar(); } }
   }, e => { if (e && e.code === 'permission-denied') limparAparelho(true).then(() => location.reload()); });
   window.addEventListener('online', () => { RC.estado = 'enviando'; RC.avisar(); enviar(); });
   window.addEventListener('offline', () => { RC.estado = 'offline'; RC.avisar(); });
@@ -460,10 +461,11 @@ RC.sair = async () => {
 
 /* ---------- equipe e acesso (só administradores) ---------- */
 RC.abrirEquipe = async (corpo) => {
-  if (!ref || RC.papel !== 'admin'){ corpo.innerHTML = '<p class="dica">Só o administrador libera ou bloqueia o acesso.</p>'; return; }
+  const adm = RC.papel === 'admin';
+  if (!ref || !(adm || RC.papel === 'coord')){ corpo.innerHTML = '<p class="dica">Só o administrador e os coordenadores veem a equipe.</p>'; return; }
   corpo.innerHTML = '<p class="dica">Carregando…</p>';
   let ac = [], pe = [];
-  try { const [a, p] = await Promise.all([ref.acesso.get(), ref.pedidos.get()]); a.forEach(d => ac.push({id:d.id, ...d.data()})); p.forEach(d => pe.push({id:d.id, ...d.data()})); }
+  try { const [a, p] = await Promise.all([ref.acesso.get(), adm ? ref.pedidos.get() : Promise.resolve([])]); a.forEach(d => ac.push({id:d.id, ...d.data()})); p.forEach(d => pe.push({id:d.id, ...d.data()})); }
   catch(e){ corpo.innerHTML = `<p class="dica erro">Não foi possível carregar a equipe (${esc(e.code || e.message)}).</p>`; return; }
   pe = pe.filter(p => !ac.some(a => a.id === p.id && a.ativo));
   const nomeDe = x => x.nome && x.nome !== x.id ? `<b>${esc(x.nome)}</b><span>${esc(x.id)}</span>` : `<b>${esc(x.id)}</b>`;
@@ -471,14 +473,15 @@ RC.abrirEquipe = async (corpo) => {
     ${pe.length ? `<h3 class="eq-t">Pedidos de acesso <span class="eq-n">${pe.length}</span></h3><div class="eq-lista">${pe.map(p => `<div class="eq-it">${nomeDe(p)}<div class="eq-bt"><button type="button" class="btn primario" data-eq="liberar" data-id="${esc(p.id)}">Liberar</button><button type="button" class="btn" data-eq="recusar" data-id="${esc(p.id)}">Recusar</button></div></div>`).join('')}</div>` : ''}
     <h3 class="eq-t">Equipe liberada</h3>
     <div class="eq-lista">${ac.sort((a, b) => (b.ativo - a.ativo) || a.id.localeCompare(b.id)).map(a => `<div class="eq-it${a.ativo ? '' : ' off'}">${nomeDe(a)}
-      <span class="eq-tag ${a.papel === 'admin' ? 'adm' : ''}">${a.papel === 'admin' ? 'Administrador' : 'Equipe'}${a.ativo ? '' : ' · bloqueado'}</span>
+      <span class="eq-tag ${a.papel === 'admin' ? 'adm' : a.papel === 'coord' ? 'coord' : ''}">${a.papel === 'admin' ? 'Administrador' : a.papel === 'coord' ? 'Coordenador' : 'Equipe'}${a.ativo ? '' : ' · bloqueado'}</span>
       ${a.id === RC.email ? '<span class="eq-voce">você</span>' : `<div class="eq-bt">
-        <button type="button" class="btn" data-eq="${a.ativo ? 'bloquear' : 'desbloquear'}" data-id="${esc(a.id)}">${a.ativo ? 'Bloquear' : 'Desbloquear'}</button>
-        <button type="button" class="btn" data-eq="papel" data-id="${esc(a.id)}" data-p="${a.papel === 'admin' ? 'equipe' : 'admin'}">${a.papel === 'admin' ? 'Tirar de administrador' : 'Tornar administrador'}</button>
-        <button type="button" class="btn" data-eq="ver" data-id="${esc(a.id)}">Ver dados</button>
-        <button type="button" class="btn perigo" data-eq="remover" data-id="${esc(a.id)}">Remover</button></div>`}</div>`).join('')}</div>
-    <form class="eq-add" data-eq-form><label class="f">Liberar outro e-mail<input type="email" required placeholder="nome@gmail.com" autocomplete="off"></label><button type="submit" class="btn primario">Liberar</button></form>
-    <p class="dica">Quem for bloqueado ou removido perde o acesso na hora: os roteiros são apagados do aparelho dessa pessoa assim que ele se conectar à internet. E-mails do domínio da equipe entram sozinhos; para tirar o acesso de um deles, use Bloquear (se for só removido, ele entra de novo).</p>`;
+        <button type="button" class="btn primario" data-eq="ver" data-id="${esc(a.id)}" data-nome="${esc(a.nome || a.id)}">Ver dados</button>
+        ${adm && a.papel !== 'admin' ? `<button type="button" class="btn" data-eq="${a.ativo ? 'bloquear' : 'desbloquear'}" data-id="${esc(a.id)}">${a.ativo ? 'Bloquear' : 'Desbloquear'}</button>
+        <button type="button" class="btn" data-eq="papel" data-id="${esc(a.id)}" data-p="${a.papel === 'coord' ? 'equipe' : 'coord'}">${a.papel === 'coord' ? 'Tirar de coordenador' : 'Tornar coordenador'}</button>
+        <button type="button" class="btn perigo" data-eq="remover" data-id="${esc(a.id)}">Remover</button>` : ''}</div>`}</div>`).join('')}</div>
+    ${adm ? '' : '<p class="dica">Como coordenador, você vê os dados de cada pessoa, sem alterar. Liberar, bloquear e mudar funções é só com o administrador.</p>'}
+    <form class="eq-add" data-eq-form ${adm ? '' : 'hidden'}><label class="f">Liberar outro e-mail<input type="email" required placeholder="nome@gmail.com" autocomplete="off"></label><button type="submit" class="btn primario">Liberar</button></form>
+    <p class="dica" ${adm ? '' : 'hidden'}>Quem for bloqueado ou removido perde o acesso na hora: os roteiros são apagados do aparelho dessa pessoa assim que ele se conectar à internet. E-mails do domínio da equipe entram sozinhos; para tirar o acesso de um deles, use Bloquear (se for só removido, ele entra de novo).</p>`;
   corpo.onclick = async ev => {
     const b = ev.target.closest('[data-eq]'); if (!b) return;
     const id = b.dataset.id, a = b.dataset.eq, ts = fb.firestore.FieldValue.serverTimestamp();
@@ -488,8 +491,8 @@ RC.abrirEquipe = async (corpo) => {
       else if (a === 'recusar'){ if (!confirm(`Recusar o pedido de ${id}?`)) return; await ref.pedidos.doc(id).delete(); }
       else if (a === 'bloquear'){ if (!confirm(`Bloquear ${id}? A pessoa perde o acesso e os roteiros saem do aparelho dela.`)) return; await ref.acesso.doc(id).update({ativo:false, por:RC.email}); }
       else if (a === 'desbloquear') await ref.acesso.doc(id).update({ativo:true, por:RC.email});
-      else if (a === 'papel'){ if (!confirm(b.dataset.p === 'admin' ? `Tornar ${id} administrador? Ele também poderá liberar e bloquear pessoas.` : `Tirar ${id} de administrador?`)) return; await ref.acesso.doc(id).update({papel:b.dataset.p, por:RC.email}); }
-      else if (a === 'ver'){ lsSet('rc-ver', id); location.reload(); return; }
+      else if (a === 'papel'){ if (!adm) return; if (!confirm(b.dataset.p === 'coord' ? `Tornar ${id} coordenador? Ele poderá ver os dados de todos, sem alterar.` : `Tirar ${id} de coordenador?`)) return; await ref.acesso.doc(id).update({papel:b.dataset.p, por:RC.email}); }
+      else if (a === 'ver'){ const n = lsGet('rc-ver-nome') || {}; n[id] = b.dataset.nome || id; lsSet('rc-ver-nome', n); lsSet('rc-ver', id); location.reload(); return; }
       else if (a === 'remover'){ if (!confirm(`Remover ${id} da equipe? A pessoa perde o acesso e os roteiros saem do aparelho dela.`)) return; await ref.acesso.doc(id).delete(); }
       RC.abrirEquipe(corpo);
     } catch(e){ alert('Não foi possível: ' + (e.code || e.message)); } finally { b.disabled = false; }

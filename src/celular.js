@@ -62,7 +62,7 @@ if (CELULAR){
   let alt = 'baixa';
   const ALT = {
     baixa: () => { const pk = corpo.querySelector('[data-peek]'); return pk ? Math.min(innerHeight * .5, pk.offsetTop + pk.offsetHeight + 28) : Math.min(corpo.scrollHeight + 24, 220); },
-    media: () => Math.round(innerHeight * .52), alta: () => innerHeight - 70 - navAlt()
+    media: () => Math.round(innerHeight * .52), alta: () => innerHeight - 70 - navAlt() - (document.documentElement.classList.contains('rc-leitura') ? 62 : 0)
   };
   function altura(a, anima = true){
     alt = a || alt; folha.dataset.alt = alt; document.documentElement.dataset.folha = alt;
@@ -339,7 +339,7 @@ if (CELULAR){
       `${EM_NUVEM ? `<div class="c-conta"><span class="c-av">${esc((s.nome || s.email || '?').trim().charAt(0).toUpperCase())}</span><div><b>${esc(s.nome || s.email)}</b><small>${esc(s.email)}</small></div><span class="c-nv ${cls}"><i></i>${cls === 'ok' ? 'Salvo' : cls === 'off' ? 'Sem internet' : cls === 'erro' ? 'Erro' : 'Enviando'}</span></div>` : ''}
       <div class="c-menu">${it('projetos', 'pasta', 'Projeto', esc(meta ? meta.nome : ''))}${it('etapas', 'roteiro', 'Etapas e planejamento', 'Dias, ordem, datas, Google Maps')}
         ${it('relatorios', 'rel', 'Relatórios e arquivos', 'PDF, planilhas, KML, GPX')}${it('offline', 'offline', 'Preparar para usar sem internet', 'Antes de ir a campo')}${it('regua', 'alvo', 'Medir distância', 'No mapa')}</div>
-      ${EM_NUVEM ? `<div class="c-menu">${s.papel === 'admin' ? it('equipe', 'equipe', 'Equipe e acesso', 'Liberar ou bloquear pessoas', '<i class="c-badge" id="cPed" hidden></i>') : ''}${it('sinc', 'nuvem', 'Sincronizar agora', esc(txt))}${it('sair', 'sair', 'Sair da conta', '')}</div>` : ''}
+      ${EM_NUVEM ? `<div class="c-menu">${s.papel === 'admin' || s.papel === 'coord' ? it('equipe', 'equipe', s.papel === 'admin' ? 'Equipe e acesso' : 'Equipe', s.papel === 'admin' ? 'Ver dados de cada pessoa, liberar, coordenadores' : 'Ver os dados de cada pessoa', '<i class="c-badge" id="cPed" hidden></i>') : ''}${it('sinc', 'nuvem', 'Sincronizar agora', esc(txt))}${it('sair', 'sair', 'Sair da conta', '')}</div>` : ''}
       <p class="c-ver">${esc(document.getElementById('versao').textContent)}</p>`;
   }
   function telaEtapas(){
@@ -359,7 +359,7 @@ if (CELULAR){
   }
   function telaRelatorios(){
     const it = (a, t, s) => `<button type="button" data-acao="${a}"><div><b>${t}</b>${s ? `<small>${s}</small>` : ''}</div></button>`;
-    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('crono', 'Relatório completo', 'Cronograma, visitas, fotos e rotas. Imprimir ou PDF.')}${it('tabela', 'Tabela das estações', '')}</div>
+    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('exec', 'Relatório do executado', 'Só o que já foi feito: visitas, situação, anotações, fotos e rotas. PDF.')}${it('crono', 'Visão geral', 'Tudo: o planejado e o executado, dia a dia. PDF.')}${it('tabela', 'Tabela das estações', '')}</div>
       <p class="c-rot">Baixar</p><div class="c-menu">${it('csv', 'Planilha do roteiro (CSV)', '')}${it('csvApoio', 'Hospedagens e paradas (CSV)', '')}${it('kml', 'Estações (KML, Google Earth)', '')}${it('fotos-zip', 'Fotos (ZIP)', '')}<button type="button" data-c="trj-todas"><div><b>Rotas gravadas (GPX)</b></div></button><button type="button" data-c="copia"><div><b>Cópia de segurança (HTML)</b><small>Abre no computador mesmo sem o app</small></div></button></div>
       <p class="c-rot">Trazer dados</p><div class="c-menu">${it('abrir', 'Importar de arquivo salvo antes', 'HTML ou .json da versão antiga')}</div>`;
   }

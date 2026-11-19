@@ -1566,6 +1566,20 @@ dialog.dlg-proj{max-width:min(720px,calc(100vw - 24px))}
 .cp-feito{flex-wrap:wrap}
 .cp-prox{margin-left:auto;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .pwa #origem{display:none}
+/* v37: vendo os dados de outra pessoa (só leitura) */
+#rcLeitura{position:fixed;z-index:4000;left:50%;transform:translateX(-50%);bottom:18px;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:16px;background:#6D28D9;color:#fff;box-shadow:0 6px 24px rgba(60,20,120,.45);font:500 14px/1.25 system-ui,sans-serif;max-width:min(560px,calc(100vw - 24px))}
+#rcLeitura .rl-ico{font-size:22px}
+#rcLeitura div{display:grid;min-width:0}
+#rcLeitura small{font-size:12px;opacity:.85}
+#rcLeitura b{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#rcLeitura button{flex:none;border:0;border-radius:10px;padding:10px 14px;background:#fff;color:#6D28D9;font:700 13px/1 system-ui,sans-serif;cursor:pointer}
+html.rc-leitura body::after{content:'';position:fixed;inset:0;border:5px solid #6D28D9;pointer-events:none;z-index:3999}
+html.rc-leitura #cGrav, html.rc-leitura .e-bt.chk, html.rc-leitura [data-cp="gravar"]{display:none!important}
+@media (max-width:760px){
+  #rcLeitura{left:0;right:0;transform:none;top:0;bottom:auto;max-width:none;border-radius:0;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px 14px;min-height:46px}
+  html.rc-leitura #cTopo{top:calc(72px + env(safe-area-inset-top,0px))}
+}
+.eq-tag.coord{background:#EDE4FF;color:#5B21B6}
 
 /* ===================== CELULAR: interface própria ===================== */
 #cel{display:none}
@@ -2125,7 +2139,8 @@ ol.rg-vis{list-style:none;padding:0}
       <div class="menu" id="menu">
         <button class="btn" id="bMenu" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg><span>Relatórios</span><span class="seta-m">▾</span></button>
         <div class="menu-lista" role="menu">
-          <button data-acao="crono">Relatório completo<small>Resumo geral, cronograma dia a dia, paradas com observações e anotações e hospedagens. Imprime ou salva em PDF.</small></button>
+          <button data-acao="exec">Relatório do executado<small>Só o que já foi feito em campo: visitas na ordem realizada, situação, anotações, fotos e rotas gravadas. Imprime ou salva em PDF.</small></button>
+          <button data-acao="crono">Visão geral<small>Tudo: resumo, cronograma dia a dia (planejado e executado), paradas com observações, hospedagens, fotos e rotas. Imprime ou salva em PDF.</small></button>
           <button data-acao="tabela" id="mTabela">Tabela das estações<small>Todas as estações do projeto com etapa, dia, horário e acesso.</small></button>
           <hr>
           <button data-acao="csv">Baixar planilha do roteiro (CSV)</button>
@@ -2237,7 +2252,7 @@ ol.rg-vis{list-style:none;padding:0}
     </div>
     <datalist id="listaEst"></datalist>
     <datalist id="todos"></datalist>
-    <div class="creditos"><b class="versao" id="versao">Versão 36 · app · 19/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
+    <div class="creditos"><b class="versao" id="versao">Versão 37 · app · 19/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
   </aside>
   <main id="mapa" aria-label="Mapa da rota"></main>
 </div>
@@ -5038,7 +5053,7 @@ async function verificarAcesso(){
          <button type="button" class="en-bt" data-en="verificar">Verificar de novo</button>${btnSair}`);
     return;
   }
-  RC.papel = ficha.papel === 'admin' ? 'admin' : 'equipe';
+  RC.papel = (ficha.papel === 'admin' ? 'admin' : ficha.papel === 'coord' ? 'coord' : 'equipe');
   lsSet(K.acesso, {ok:true, uid:RC.user.uid, email:RC.email, nome:RC.nome, papel:RC.papel, t:Date.now()});
   entrar(false);
 }
@@ -5053,7 +5068,8 @@ document.addEventListener('click', ev => {
 /* ---------- entrada: traz os dados e abre o app ---------- */
 /* Cada pessoa tem o próprio espaço: contas/{email}. Administrador pode abrir o de outra pessoa só para ver (rc-ver). */
 async function apontarConta(){
-  const ver = lsGet('rc-ver'), dono = ver && RC.papel === 'admin' && ver !== RC.email ? ver : RC.email;
+  const ver = lsGet('rc-ver'), dono = ver && (RC.papel === 'admin' || RC.papel === 'coord') && ver !== RC.email ? ver : RC.email;
+  RC.verNome = (lsGet('rc-ver-nome') || {})[dono] || dono;
   RC.dono = dono; RC.leitura = dono !== RC.email;
   const base = db.collection('contas').doc(dono);
   ref.projetos = base.collection('projetos'); ref.trajetos = base.collection('trajetos');
@@ -5064,9 +5080,9 @@ async function apontarConta(){
     try { await TRJ.limpar(); } catch(e){} try { indexedDB.deleteDatabase('roteiro-rotas'); } catch(e){}
   }
   lsSet('rc-conta', dono);
+  document.documentElement.classList.toggle('rc-leitura', RC.leitura);
   if (RC.leitura){ const b = document.createElement('div'); b.id = 'rcLeitura';
-    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 64px);z-index:3000;background:#7B3FC4;color:#fff;padding:8px 12px;border-radius:12px;font:600 13px/1.3 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;max-width:92vw';
-    b.innerHTML = `<span>Vendo os dados de ${esc(dono)} · só leitura</span><button type="button" style="border:0;border-radius:8px;padding:6px 10px;font:700 12px system-ui;cursor:pointer">Voltar aos meus</button>`;
+    b.innerHTML = `<span class="rl-ico">👁</span><div><small>Você está vendo os dados de</small><b>${esc(RC.verNome)}</b></div><button type="button">Voltar aos meus</button>`;
     b.querySelector('button').onclick = () => { lsDel('rc-ver'); location.reload(); }; document.body.appendChild(b); }
   /* primeira vez com contas separadas: traz para a conta da pessoa os roteiros e as rotas dela que estavam no espaço comum */
   if (!RC.leitura && online()) try { await comTempo(migrar(dono), 25000); } catch(e){ if (e && e.code === 'permission-denied') RC.semRegras = true; }
@@ -5137,7 +5153,7 @@ function ligarSincronizacao(){
     if (d.metadata.fromCache) return;
     const f = d.exists ? d.data() : null;
     if (!f || f.ativo !== true){ limparAparelho(true).then(() => location.reload()); }
-    else { const p = f.papel === 'admin' ? 'admin' : 'equipe'; if (p !== RC.papel){ RC.papel = p; const a = lsGet(K.acesso); if (a){ a.papel = p; lsSet(K.acesso, a); } RC.avisar(); } }
+    else { const p = f.papel === 'admin' ? 'admin' : f.papel === 'coord' ? 'coord' : 'equipe'; if (p !== RC.papel){ RC.papel = p; const a = lsGet(K.acesso); if (a){ a.papel = p; lsSet(K.acesso, a); } RC.avisar(); } }
   }, e => { if (e && e.code === 'permission-denied') limparAparelho(true).then(() => location.reload()); });
   window.addEventListener('online', () => { RC.estado = 'enviando'; RC.avisar(); enviar(); });
   window.addEventListener('offline', () => { RC.estado = 'offline'; RC.avisar(); });
@@ -5268,10 +5284,11 @@ RC.sair = async () => {
 
 /* ---------- equipe e acesso (só administradores) ---------- */
 RC.abrirEquipe = async (corpo) => {
-  if (!ref || RC.papel !== 'admin'){ corpo.innerHTML = '<p class="dica">Só o administrador libera ou bloqueia o acesso.</p>'; return; }
+  const adm = RC.papel === 'admin';
+  if (!ref || !(adm || RC.papel === 'coord')){ corpo.innerHTML = '<p class="dica">Só o administrador e os coordenadores veem a equipe.</p>'; return; }
   corpo.innerHTML = '<p class="dica">Carregando…</p>';
   let ac = [], pe = [];
-  try { const [a, p] = await Promise.all([ref.acesso.get(), ref.pedidos.get()]); a.forEach(d => ac.push({id:d.id, ...d.data()})); p.forEach(d => pe.push({id:d.id, ...d.data()})); }
+  try { const [a, p] = await Promise.all([ref.acesso.get(), adm ? ref.pedidos.get() : Promise.resolve([])]); a.forEach(d => ac.push({id:d.id, ...d.data()})); p.forEach(d => pe.push({id:d.id, ...d.data()})); }
   catch(e){ corpo.innerHTML = `<p class="dica erro">Não foi possível carregar a equipe (${esc(e.code || e.message)}).</p>`; return; }
   pe = pe.filter(p => !ac.some(a => a.id === p.id && a.ativo));
   const nomeDe = x => x.nome && x.nome !== x.id ? `<b>${esc(x.nome)}</b><span>${esc(x.id)}</span>` : `<b>${esc(x.id)}</b>`;
@@ -5279,14 +5296,15 @@ RC.abrirEquipe = async (corpo) => {
     ${pe.length ? `<h3 class="eq-t">Pedidos de acesso <span class="eq-n">${pe.length}</span></h3><div class="eq-lista">${pe.map(p => `<div class="eq-it">${nomeDe(p)}<div class="eq-bt"><button type="button" class="btn primario" data-eq="liberar" data-id="${esc(p.id)}">Liberar</button><button type="button" class="btn" data-eq="recusar" data-id="${esc(p.id)}">Recusar</button></div></div>`).join('')}</div>` : ''}
     <h3 class="eq-t">Equipe liberada</h3>
     <div class="eq-lista">${ac.sort((a, b) => (b.ativo - a.ativo) || a.id.localeCompare(b.id)).map(a => `<div class="eq-it${a.ativo ? '' : ' off'}">${nomeDe(a)}
-      <span class="eq-tag ${a.papel === 'admin' ? 'adm' : ''}">${a.papel === 'admin' ? 'Administrador' : 'Equipe'}${a.ativo ? '' : ' · bloqueado'}</span>
+      <span class="eq-tag ${a.papel === 'admin' ? 'adm' : a.papel === 'coord' ? 'coord' : ''}">${a.papel === 'admin' ? 'Administrador' : a.papel === 'coord' ? 'Coordenador' : 'Equipe'}${a.ativo ? '' : ' · bloqueado'}</span>
       ${a.id === RC.email ? '<span class="eq-voce">você</span>' : `<div class="eq-bt">
-        <button type="button" class="btn" data-eq="${a.ativo ? 'bloquear' : 'desbloquear'}" data-id="${esc(a.id)}">${a.ativo ? 'Bloquear' : 'Desbloquear'}</button>
-        <button type="button" class="btn" data-eq="papel" data-id="${esc(a.id)}" data-p="${a.papel === 'admin' ? 'equipe' : 'admin'}">${a.papel === 'admin' ? 'Tirar de administrador' : 'Tornar administrador'}</button>
-        <button type="button" class="btn" data-eq="ver" data-id="${esc(a.id)}">Ver dados</button>
-        <button type="button" class="btn perigo" data-eq="remover" data-id="${esc(a.id)}">Remover</button></div>`}</div>`).join('')}</div>
-    <form class="eq-add" data-eq-form><label class="f">Liberar outro e-mail<input type="email" required placeholder="nome@gmail.com" autocomplete="off"></label><button type="submit" class="btn primario">Liberar</button></form>
-    <p class="dica">Quem for bloqueado ou removido perde o acesso na hora: os roteiros são apagados do aparelho dessa pessoa assim que ele se conectar à internet. E-mails do domínio da equipe entram sozinhos; para tirar o acesso de um deles, use Bloquear (se for só removido, ele entra de novo).</p>`;
+        <button type="button" class="btn primario" data-eq="ver" data-id="${esc(a.id)}" data-nome="${esc(a.nome || a.id)}">Ver dados</button>
+        ${adm && a.papel !== 'admin' ? `<button type="button" class="btn" data-eq="${a.ativo ? 'bloquear' : 'desbloquear'}" data-id="${esc(a.id)}">${a.ativo ? 'Bloquear' : 'Desbloquear'}</button>
+        <button type="button" class="btn" data-eq="papel" data-id="${esc(a.id)}" data-p="${a.papel === 'coord' ? 'equipe' : 'coord'}">${a.papel === 'coord' ? 'Tirar de coordenador' : 'Tornar coordenador'}</button>
+        <button type="button" class="btn perigo" data-eq="remover" data-id="${esc(a.id)}">Remover</button>` : ''}</div>`}</div>`).join('')}</div>
+    ${adm ? '' : '<p class="dica">Como coordenador, você vê os dados de cada pessoa, sem alterar. Liberar, bloquear e mudar funções é só com o administrador.</p>'}
+    <form class="eq-add" data-eq-form ${adm ? '' : 'hidden'}><label class="f">Liberar outro e-mail<input type="email" required placeholder="nome@gmail.com" autocomplete="off"></label><button type="submit" class="btn primario">Liberar</button></form>
+    <p class="dica" ${adm ? '' : 'hidden'}>Quem for bloqueado ou removido perde o acesso na hora: os roteiros são apagados do aparelho dessa pessoa assim que ele se conectar à internet. E-mails do domínio da equipe entram sozinhos; para tirar o acesso de um deles, use Bloquear (se for só removido, ele entra de novo).</p>`;
   corpo.onclick = async ev => {
     const b = ev.target.closest('[data-eq]'); if (!b) return;
     const id = b.dataset.id, a = b.dataset.eq, ts = fb.firestore.FieldValue.serverTimestamp();
@@ -5296,8 +5314,8 @@ RC.abrirEquipe = async (corpo) => {
       else if (a === 'recusar'){ if (!confirm(`Recusar o pedido de ${id}?`)) return; await ref.pedidos.doc(id).delete(); }
       else if (a === 'bloquear'){ if (!confirm(`Bloquear ${id}? A pessoa perde o acesso e os roteiros saem do aparelho dela.`)) return; await ref.acesso.doc(id).update({ativo:false, por:RC.email}); }
       else if (a === 'desbloquear') await ref.acesso.doc(id).update({ativo:true, por:RC.email});
-      else if (a === 'papel'){ if (!confirm(b.dataset.p === 'admin' ? `Tornar ${id} administrador? Ele também poderá liberar e bloquear pessoas.` : `Tirar ${id} de administrador?`)) return; await ref.acesso.doc(id).update({papel:b.dataset.p, por:RC.email}); }
-      else if (a === 'ver'){ lsSet('rc-ver', id); location.reload(); return; }
+      else if (a === 'papel'){ if (!adm) return; if (!confirm(b.dataset.p === 'coord' ? `Tornar ${id} coordenador? Ele poderá ver os dados de todos, sem alterar.` : `Tirar ${id} de coordenador?`)) return; await ref.acesso.doc(id).update({papel:b.dataset.p, por:RC.email}); }
+      else if (a === 'ver'){ const n = lsGet('rc-ver-nome') || {}; n[id] = b.dataset.nome || id; lsSet('rc-ver-nome', n); lsSet('rc-ver', id); location.reload(); return; }
       else if (a === 'remover'){ if (!confirm(`Remover ${id} da equipe? A pessoa perde o acesso e os roteiros saem do aparelho dela.`)) return; await ref.acesso.doc(id).delete(); }
       RC.abrirEquipe(corpo);
     } catch(e){ alert('Não foi possível: ' + (e.code || e.message)); } finally { b.disabled = false; }
@@ -5489,7 +5507,9 @@ function marcarTempos(){
   ANT = novo;
 }
 function save(){ marcarTempos(); state.mod = Date.now(); try { localStorage.setItem(KEYP, JSON.stringify(state)); if (window.RC) RC.sujo(); } catch(e){ if (!avisouCheio){ avisouCheio = true; setTimeout(() => toast('O espaço deste navegador para guardar roteiros acabou. Use Salvar para gravar no arquivo e exclua projetos antigos no quadro Projetos.'), 0); } } if (typeof atualizaSalvar === "function") try { atualizaSalvar(); } catch(e){} gravarApp(); }
-function snapshot(){ undoStack.push(JSON.stringify(state)); if (undoStack.length > 80) undoStack.shift(); }
+/* vendo os dados de outra pessoa: nada pode ser alterado (só o dono da conta altera) */
+function bloqueiaLeitura(){ if (window.RC && RC.leitura){ toast(`Só leitura: você está vendo os dados de ${RC.verNome || RC.dono}. Só o dono da conta pode alterar.`); throw new Error('somente leitura'); } }
+function snapshot(){ bloqueiaLeitura(); undoStack.push(JSON.stringify(state)); if (undoStack.length > 80) undoStack.shift(); }
 /* Estações do mesmo local (dupla F+P) ficam sempre juntas: na mesma etapa e em sequência.
    Também garante que nenhuma estação apareça duas vezes. Devolve quantas correções fez. */
 let MOVIDOS = new Set();
@@ -6763,6 +6783,7 @@ function prepRel(){
     nav.onclick = ev => { const b = ev.target.closest('[data-ir]'); if (!b) return; if (b.dataset.ir === 'topo') c.scrollTo({top:0}); else { const h = document.getElementById('rel-et-' + b.dataset.ir); c.scrollTo({top: c.scrollTop + h.getBoundingClientRect().top - c.getBoundingClientRect().top - nav.offsetHeight - 6}); } };
     c.prepend(nav); }
 }
+const contaRel = () => window.RC && RC.dono && RC.ativo ? ` · ${RC.leitura ? (RC.verNome || RC.dono) : (RC.nome || RC.email)}` : '';
 function abrirCrono(){
   const T = totaisGerais();
   let h = `<div class="rel-resumo">
@@ -6802,7 +6823,7 @@ function abrirCrono(){
   h += tabelaApoios(soltos, 'Hospedagens e paradas sem etapa', '#5E6B66', false);
   h += secaoOrdemRel();
   h += secaoTrajetosRel();
-  document.getElementById('dRelTit').textContent = 'Relatório completo do roteiro';
+  document.getElementById('dRelTit').textContent = 'Visão geral do roteiro (planejado e executado)' + contaRel();
   document.getElementById('relCorpo').innerHTML = state.etapas.length ? h : '<p class="vazio">Nenhuma etapa montada ainda.</p>';
   hidratar(document.getElementById('relCorpo'));
   prepRel(); dRel.showModal();
@@ -7178,6 +7199,7 @@ document.addEventListener('click', () => menu.classList.remove('aberto'));
 const menuHandler = menu.querySelector('.menu-lista').onclick = ev => {
   const b = ev.target.closest('[data-acao]'); if (!b) return; const a = b.dataset.acao; menu.classList.remove('aberto');
   if (a === 'crono') abrirCrono();
+  if (a === 'exec') abrirExecutado();
   if (a === 'gastos') abrirGastos();
   if (a === 'fotos-zip') baixarFotosZip();
   if (a === 'offline') prepararOffline();
@@ -8730,6 +8752,36 @@ function secaoOrdemRel(){
       return `<tr><td class="n">${i + 1}</td><td class="nw">${esc(fmtTsVisita(x.t))}</td><td><b>${esc(EST[x.s.id].nome)}</b></td><td>${esc(estMun(EST[x.s.id]))}</td><td class="nw">${esc(x.e.nome)}</td><td class="nw">nº ${x.k + 1}${inf ? ` · dia ${inf.d + 1}` : ''}</td><td>${x.s.sit ? SITUACOES[x.s.sit] : '–'}</td></tr>`; }).join('')}
     </tbody></table>`;
 }
+/* Relatório do executado: só o que já foi feito em campo (visitas, situação, anotações, fotos, ordem e rotas gravadas). */
+function abrirExecutado(){
+  const L = ordemRealizada(), sit = {ok:0, manut:0, acesso:0}; L.forEach(x => { if (x.s.sit) sit[x.s.sit]++; });
+  const total = state.etapas.reduce((a, e) => a + e.stops.length, 0), fotos = L.reduce((a, x) => a + (x.s.fotos || []).length, 0);
+  const kmG = GRV.lista.reduce((a, t) => a + t.km, 0), dias = new Set(L.map(x => new Date(x.t).toDateString())).size;
+  const ini = L.length ? new Date(L[0].t).toLocaleDateString('pt-BR') : '', fim = L.length ? new Date(L[L.length - 1].t).toLocaleDateString('pt-BR') : '';
+  let h = `<div class="rel-resumo">
+    <div><b>${L.length}</b><span>visitadas de ${total}</span></div><div><b>${total ? Math.round(L.length / total * 100) : 0}%</b><span>do roteiro</span></div><div><b>${dias}</b><span>dias com visita</span></div>
+    <div><b>${sit.ok}</b><span>funcionando</span></div><div><b>${sit.manut}</b><span>precisam de manutenção</span></div><div><b>${sit.acesso}</b><span>sem acesso</span></div>
+    <div><b>${fotos}</b><span>fotos</span></div><div><b>${num(kmG, 1)}</b><span>km gravados (${GRV.lista.length} ${GRV.lista.length === 1 ? 'rota' : 'rotas'})</span></div></div>
+    <p class="rot" style="margin:6px 0 0">${L.length ? `Período das visitas: ${ini}${fim !== ini ? ` a ${fim}` : ''}. ` : ''}Só o que já foi registrado em campo. Para ver também o que falta, use a Visão geral.</p>`;
+  if (!L.length) h += '<p class="vazio">Nenhuma visita marcada ainda. Em campo, toque em "Cheguei" em cada estação.</p>';
+  h += secaoOrdemRel();
+  state.etapas.forEach(e => {
+    const V = ordemRealizada(e); if (!V.length) return;
+    h += `<h3 class="rel-etapa" style="--c:${e.cor}">${esc(e.nome)}<span>${V.length} de ${e.stops.length} estações visitadas</span></h3>
+      <table class="rel"><caption style="--c:${e.cor}">Visitas realizadas</caption>
+      <thead><tr><th>Nº</th><th>Data e hora</th><th>Estação</th><th>Código</th><th>Município</th><th>Situação</th><th>Anotações da visita</th><th>Fotos</th></tr></thead><tbody>
+      ${V.map((x, i) => { const est = EST[x.s.id];
+        return `<tr><td class="n">${i + 1}</td><td class="nw">${esc(fmtTsVisita(x.t))}</td><td><b>${esc(est.nome)}</b> ${tipoBadge(est)}</td><td class="nw">${esc(est.cod.join(' / '))}</td><td>${esc(estMun(est))}</td>
+          <td>${x.s.sit ? esc(SITUACOES[x.s.sit]) : '<span class="falta">não informada</span>'}</td><td>${[x.s.relato && esc(x.s.relato), x.s.nota && `<span class="rot">Obs.: ${esc(x.s.nota)}</span>`].filter(Boolean).join('<br>') || '–'}</td><td class="n">${(x.s.fotos || []).length || '–'}</td></tr>`; }).join('')}
+      </tbody></table>`;
+    h += secaoFotosRel(e, e.cor);
+  });
+  h += secaoTrajetosRel();
+  document.getElementById('dRelTit').textContent = 'Relatório do executado' + contaRel();
+  document.getElementById('relCorpo').innerHTML = h;
+  hidratar(document.getElementById('relCorpo'));
+  prepRel(); dRel.showModal();
+}
 function secaoTrajetosRel(){
   if (!GRV.lista.length) return '';
   const tot = GRV.lista.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
@@ -8828,7 +8880,7 @@ function htmlRegistros(){
       ${visitas.length ? `<ol class="rg-vis">${visitas.map((x, i) => ({...x, n: i + 1})).slice(-40).reverse().map(({e, s, k, t, n}) => `<li style="--c:${e.cor}"><button type="button" data-rg="est" data-id="${s.id}"><b>${n}. ${esc(EST[s.id].nome)}</b> ${tipoBadge(EST[s.id])}<small>${esc(fmtTsVisita(t))} · ${esc(e.nome)} · nº ${k + 1} no roteiro${(s.fotos || []).length ? ` · ${s.fotos.length} foto(s)` : ''}${s.relato ? ' · com anotação' : ''}</small></button></li>`).join('')}</ol>` : '<p class="vazio">Nenhuma visita marcada ainda.</p>'}</section>
     <section class="rg-sec"><div class="rg-t"><h3>Fotos</h3>${fotos.length ? '<button type="button" class="btn" data-rg="zip">Baixar todas (ZIP)</button>' : ''}</div>
       ${fotos.length ? `<div class="rg-fotos">${fotos.slice(0, 24).map(x => `<button type="button" class="th" data-ver-foto="${x.s.id}|${x.f.id}" title="${esc(EST[x.s.id].nome)}"><img data-foto="${x.f.id}" alt="Foto de ${esc(EST[x.s.id].nome)}"></button>`).join('')}</div>` : '<p class="vazio">As fotos tiradas nas visitas aparecem aqui, com GPS gravado.</p>'}</section>
-    <section class="rg-sec"><div class="rg-baixar"><button type="button" class="btn" data-rg="rel">${svgI('rel')}<span>Relatório completo</span></button></div></section>`;
+    <section class="rg-sec"><div class="rg-baixar"><button type="button" class="btn primario" data-rg="exec">${svgI('rel')}<span>Relatório do executado</span></button><button type="button" class="btn" data-rg="rel">${svgI('rel')}<span>Visão geral</span></button></div></section>`;
 }
 
 /* ---------------- tela "Menu" ---------------- */
@@ -8848,7 +8900,7 @@ function htmlMenu(){
       <button type="button" data-mn="projetos">${svgI('pasta')}<div><b>Projetos</b><small>${esc(meta ? meta.nome : '')} · trocar, criar, copiar ou importar planilha</small></div></button>
       <button type="button" data-mn="relatorios">${svgI('rel')}<div><b>Relatórios e arquivos</b><small>Cronograma, tabela, fotos, KML, GPX, planilhas</small></div></button>
       <button type="button" data-mn="offline">${svgI('offline')}<div><b>Preparar para usar sem internet</b><small>Antes de ir a campo: guarda distâncias e traçados no aparelho</small></div></button>
-      ${EM_NUVEM && s.papel === 'admin' ? `<button type="button" data-mn="equipe">${svgI('equipe')}<div><b>Equipe e acesso</b><small>Liberar, bloquear ou remover pessoas</small></div><i class="mn-badge" id="mnPedidos" hidden></i></button>` : ''}
+      ${EM_NUVEM && (s.papel === 'admin' || s.papel === 'coord') ? `<button type="button" data-mn="equipe">${svgI('equipe')}<div><b>${s.papel === 'admin' ? 'Equipe e acesso' : 'Equipe'}</b><small>${s.papel === 'admin' ? 'Ver dados de cada pessoa, liberar, bloquear, coordenadores' : 'Ver os dados de cada pessoa (só leitura)'}</small></div><i class="mn-badge" id="mnPedidos" hidden></i></button>` : ''}
       <button type="button" data-mn="instalar" id="mnInstalar" hidden>${svgI('baixar')}<div><b>Instalar o app</b><small>Abre em tela cheia e funciona sem internet</small></div></button>
       ${EM_NUVEM ? `<button type="button" data-mn="sair" class="perigo-m">${svgI('sair')}<div><b>Sair da conta</b><small>Apaga os dados deste aparelho (eles continuam na nuvem)</small></div></button>` : ''}
     </div>
@@ -8903,6 +8955,7 @@ telaCorpo.addEventListener('click', ev => {
   else if (rg === 'excluir') excluirTrajeto(id);
   else if (rg === 'todas-gpx') baixarTrajetos('gpx');
   else if (rg === 'todas-kml') baixarTrajetos('kml');
+  else if (rg === 'exec') abrirExecutado();
   else if (rg === 'usar-ordem'){ const e = etapaPorId(id); if (e && confirm(`Trocar a ordem de ${e.nome} pela ordem em que as estações foram visitadas? As pendentes ficam depois, na ordem atual. Dá para desfazer.`)) usarOrdemVisitada(e); }
   else if (rg === 'est'){ if (mobile()) irAba('mapa'); verPonto(ll(id), Math.max(map.getZoom(), 13)); setTimeout(() => popupEst(id, L.latLng(ll(id))), 300); }
   else if (rg === 'zip') baixarFotosZip();
@@ -9051,7 +9104,7 @@ if (CELULAR){
   let alt = 'baixa';
   const ALT = {
     baixa: () => { const pk = corpo.querySelector('[data-peek]'); return pk ? Math.min(innerHeight * .5, pk.offsetTop + pk.offsetHeight + 28) : Math.min(corpo.scrollHeight + 24, 220); },
-    media: () => Math.round(innerHeight * .52), alta: () => innerHeight - 70 - navAlt()
+    media: () => Math.round(innerHeight * .52), alta: () => innerHeight - 70 - navAlt() - (document.documentElement.classList.contains('rc-leitura') ? 62 : 0)
   };
   function altura(a, anima = true){
     alt = a || alt; folha.dataset.alt = alt; document.documentElement.dataset.folha = alt;
@@ -9328,7 +9381,7 @@ if (CELULAR){
       `${EM_NUVEM ? `<div class="c-conta"><span class="c-av">${esc((s.nome || s.email || '?').trim().charAt(0).toUpperCase())}</span><div><b>${esc(s.nome || s.email)}</b><small>${esc(s.email)}</small></div><span class="c-nv ${cls}"><i></i>${cls === 'ok' ? 'Salvo' : cls === 'off' ? 'Sem internet' : cls === 'erro' ? 'Erro' : 'Enviando'}</span></div>` : ''}
       <div class="c-menu">${it('projetos', 'pasta', 'Projeto', esc(meta ? meta.nome : ''))}${it('etapas', 'roteiro', 'Etapas e planejamento', 'Dias, ordem, datas, Google Maps')}
         ${it('relatorios', 'rel', 'Relatórios e arquivos', 'PDF, planilhas, KML, GPX')}${it('offline', 'offline', 'Preparar para usar sem internet', 'Antes de ir a campo')}${it('regua', 'alvo', 'Medir distância', 'No mapa')}</div>
-      ${EM_NUVEM ? `<div class="c-menu">${s.papel === 'admin' ? it('equipe', 'equipe', 'Equipe e acesso', 'Liberar ou bloquear pessoas', '<i class="c-badge" id="cPed" hidden></i>') : ''}${it('sinc', 'nuvem', 'Sincronizar agora', esc(txt))}${it('sair', 'sair', 'Sair da conta', '')}</div>` : ''}
+      ${EM_NUVEM ? `<div class="c-menu">${s.papel === 'admin' || s.papel === 'coord' ? it('equipe', 'equipe', s.papel === 'admin' ? 'Equipe e acesso' : 'Equipe', s.papel === 'admin' ? 'Ver dados de cada pessoa, liberar, coordenadores' : 'Ver os dados de cada pessoa', '<i class="c-badge" id="cPed" hidden></i>') : ''}${it('sinc', 'nuvem', 'Sincronizar agora', esc(txt))}${it('sair', 'sair', 'Sair da conta', '')}</div>` : ''}
       <p class="c-ver">${esc(document.getElementById('versao').textContent)}</p>`;
   }
   function telaEtapas(){
@@ -9348,7 +9401,7 @@ if (CELULAR){
   }
   function telaRelatorios(){
     const it = (a, t, s) => `<button type="button" data-acao="${a}"><div><b>${t}</b>${s ? `<small>${s}</small>` : ''}</div></button>`;
-    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('crono', 'Relatório completo', 'Cronograma, visitas, fotos e rotas. Imprimir ou PDF.')}${it('tabela', 'Tabela das estações', '')}</div>
+    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('exec', 'Relatório do executado', 'Só o que já foi feito: visitas, situação, anotações, fotos e rotas. PDF.')}${it('crono', 'Visão geral', 'Tudo: o planejado e o executado, dia a dia. PDF.')}${it('tabela', 'Tabela das estações', '')}</div>
       <p class="c-rot">Baixar</p><div class="c-menu">${it('csv', 'Planilha do roteiro (CSV)', '')}${it('csvApoio', 'Hospedagens e paradas (CSV)', '')}${it('kml', 'Estações (KML, Google Earth)', '')}${it('fotos-zip', 'Fotos (ZIP)', '')}<button type="button" data-c="trj-todas"><div><b>Rotas gravadas (GPX)</b></div></button><button type="button" data-c="copia"><div><b>Cópia de segurança (HTML)</b><small>Abre no computador mesmo sem o app</small></div></button></div>
       <p class="c-rot">Trazer dados</p><div class="c-menu">${it('abrir', 'Importar de arquivo salvo antes', 'HTML ou .json da versão antiga')}</div>`;
   }

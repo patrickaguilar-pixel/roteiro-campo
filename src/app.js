@@ -172,7 +172,9 @@ function marcarTempos(){
   ANT = novo;
 }
 function save(){ marcarTempos(); state.mod = Date.now(); try { localStorage.setItem(KEYP, JSON.stringify(state)); if (window.RC) RC.sujo(); } catch(e){ if (!avisouCheio){ avisouCheio = true; setTimeout(() => toast('O espaço deste navegador para guardar roteiros acabou. Use Salvar para gravar no arquivo e exclua projetos antigos no quadro Projetos.'), 0); } } if (typeof atualizaSalvar === "function") try { atualizaSalvar(); } catch(e){} gravarApp(); }
-function snapshot(){ undoStack.push(JSON.stringify(state)); if (undoStack.length > 80) undoStack.shift(); }
+/* vendo os dados de outra pessoa: nada pode ser alterado (só o dono da conta altera) */
+function bloqueiaLeitura(){ if (window.RC && RC.leitura){ toast(`Só leitura: você está vendo os dados de ${RC.verNome || RC.dono}. Só o dono da conta pode alterar.`); throw new Error('somente leitura'); } }
+function snapshot(){ bloqueiaLeitura(); undoStack.push(JSON.stringify(state)); if (undoStack.length > 80) undoStack.shift(); }
 /* Estações do mesmo local (dupla F+P) ficam sempre juntas: na mesma etapa e em sequência.
    Também garante que nenhuma estação apareça duas vezes. Devolve quantas correções fez. */
 let MOVIDOS = new Set();
@@ -1446,6 +1448,7 @@ function prepRel(){
     nav.onclick = ev => { const b = ev.target.closest('[data-ir]'); if (!b) return; if (b.dataset.ir === 'topo') c.scrollTo({top:0}); else { const h = document.getElementById('rel-et-' + b.dataset.ir); c.scrollTo({top: c.scrollTop + h.getBoundingClientRect().top - c.getBoundingClientRect().top - nav.offsetHeight - 6}); } };
     c.prepend(nav); }
 }
+const contaRel = () => window.RC && RC.dono && RC.ativo ? ` · ${RC.leitura ? (RC.verNome || RC.dono) : (RC.nome || RC.email)}` : '';
 function abrirCrono(){
   const T = totaisGerais();
   let h = `<div class="rel-resumo">
@@ -1485,7 +1488,7 @@ function abrirCrono(){
   h += tabelaApoios(soltos, 'Hospedagens e paradas sem etapa', '#5E6B66', false);
   h += secaoOrdemRel();
   h += secaoTrajetosRel();
-  document.getElementById('dRelTit').textContent = 'Relatório completo do roteiro';
+  document.getElementById('dRelTit').textContent = 'Visão geral do roteiro (planejado e executado)' + contaRel();
   document.getElementById('relCorpo').innerHTML = state.etapas.length ? h : '<p class="vazio">Nenhuma etapa montada ainda.</p>';
   hidratar(document.getElementById('relCorpo'));
   prepRel(); dRel.showModal();
@@ -1861,6 +1864,7 @@ document.addEventListener('click', () => menu.classList.remove('aberto'));
 const menuHandler = menu.querySelector('.menu-lista').onclick = ev => {
   const b = ev.target.closest('[data-acao]'); if (!b) return; const a = b.dataset.acao; menu.classList.remove('aberto');
   if (a === 'crono') abrirCrono();
+  if (a === 'exec') abrirExecutado();
   if (a === 'gastos') abrirGastos();
   if (a === 'fotos-zip') baixarFotosZip();
   if (a === 'offline') prepararOffline();

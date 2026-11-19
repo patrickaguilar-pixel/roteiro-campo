@@ -208,3 +208,17 @@
 .cp-feito{flex-wrap:wrap}
 .cp-prox{margin-left:auto;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .pwa #origem{display:none}
+/* v37: vendo os dados de outra pessoa (só leitura) */
+#rcLeitura{position:fixed;z-index:4000;left:50%;transform:translateX(-50%);bottom:18px;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:16px;background:#6D28D9;color:#fff;box-shadow:0 6px 24px rgba(60,20,120,.45);font:500 14px/1.25 system-ui,sans-serif;max-width:min(560px,calc(100vw - 24px))}
+#rcLeitura .rl-ico{font-size:22px}
+#rcLeitura div{display:grid;min-width:0}
+#rcLeitura small{font-size:12px;opacity:.85}
+#rcLeitura b{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#rcLeitura button{flex:none;border:0;border-radius:10px;padding:10px 14px;background:#fff;color:#6D28D9;font:700 13px/1 system-ui,sans-serif;cursor:pointer}
+html.rc-leitura body::after{content:'';position:fixed;inset:0;border:5px solid #6D28D9;pointer-events:none;z-index:3999}
+html.rc-leitura #cGrav, html.rc-leitura .e-bt.chk, html.rc-leitura [data-cp="gravar"]{display:none!important}
+@media (max-width:760px){
+  #rcLeitura{left:0;right:0;transform:none;top:0;bottom:auto;max-width:none;border-radius:0;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px 14px;min-height:46px}
+  html.rc-leitura #cTopo{top:calc(72px + env(safe-area-inset-top,0px))}
+}
+.eq-tag.coord{background:#EDE4FF;color:#5B21B6}
