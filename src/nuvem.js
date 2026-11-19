@@ -249,6 +249,11 @@ async function apontarConta(){
   RC.verNome = (lsGet('rc-ver-nome') || {})[dono] || dono;
   RC.dono = dono; RC.leitura = dono !== RC.email;
   const base = db.collection('contas').doc(dono);
+  /* nome e foto do Google de cada conta, para quem estiver vendo os dados saber de quem são */
+  if (!RC.leitura && online() && RC.user) base.set({nome:RC.nome || dono, foto:RC.user.photoURL || '', t:fb.firestore.FieldValue.serverTimestamp()}, {merge:true}).catch(() => {});
+  let perfil = {};
+  if (RC.leitura) try { const d = await comTempo(base.get(), 6000); if (d.exists) perfil = d.data() || {}; } catch(e){}
+  if (perfil.nome) RC.verNome = perfil.nome;
   ref.projetos = base.collection('projetos'); ref.trajetos = base.collection('trajetos');
   /* aparelho trocou de conta: tira os roteiros da conta anterior deste aparelho para não misturar */
   const ant = lsGet('rc-conta');
@@ -259,7 +264,9 @@ async function apontarConta(){
   lsSet('rc-conta', dono);
   document.documentElement.classList.toggle('rc-leitura', RC.leitura);
   if (RC.leitura){ const b = document.createElement('div'); b.id = 'rcLeitura';
-    b.innerHTML = `<span class="rl-ico">👁</span><div><small>Você está vendo os dados de</small><b>${esc(RC.verNome)}</b></div><button type="button">Voltar aos meus</button>`;
+    const ini = (RC.verNome || dono).trim().charAt(0).toUpperCase();
+    b.innerHTML = `<span class="rl-av">${perfil.foto ? `<img src="${esc(perfil.foto)}" alt="" referrerpolicy="no-referrer">` : ''}<i>${esc(ini)}</i></span><div><small>Você está vendo os dados de</small><b>${esc(RC.verNome)}</b></div><button type="button">Voltar aos meus</button>`;
+    const im = b.querySelector('img'); if (im) im.onerror = () => im.remove();
     b.querySelector('button').onclick = () => { lsDel('rc-ver'); location.reload(); }; document.body.appendChild(b); }
   /* primeira vez com contas separadas: traz para a conta da pessoa os roteiros e as rotas dela que estavam no espaço comum */
   if (!RC.leitura && online()) try { await comTempo(migrar(dono), 25000); } catch(e){ if (e && e.code === 'permission-denied') RC.semRegras = true; }
@@ -468,6 +475,7 @@ RC.abrirEquipe = async (corpo) => {
   try { const [a, p] = await Promise.all([ref.acesso.get(), adm ? ref.pedidos.get() : Promise.resolve([])]); a.forEach(d => ac.push({id:d.id, ...d.data()})); p.forEach(d => pe.push({id:d.id, ...d.data()})); }
   catch(e){ corpo.innerHTML = `<p class="dica erro">Não foi possível carregar a equipe (${esc(e.code || e.message)}).</p>`; return; }
   pe = pe.filter(p => !ac.some(a => a.id === p.id && a.ativo));
+  if (adm) for (const a of ac) if (a.papel === 'admin' && a.id !== RC.email){ try { await ref.acesso.doc(a.id).update({papel:'coord', por:RC.email}); a.papel = 'coord'; } catch(e){} }
   const nomeDe = x => x.nome && x.nome !== x.id ? `<b>${esc(x.nome)}</b><span>${esc(x.id)}</span>` : `<b>${esc(x.id)}</b>`;
   corpo.innerHTML = `
     ${pe.length ? `<h3 class="eq-t">Pedidos de acesso <span class="eq-n">${pe.length}</span></h3><div class="eq-lista">${pe.map(p => `<div class="eq-it">${nomeDe(p)}<div class="eq-bt"><button type="button" class="btn primario" data-eq="liberar" data-id="${esc(p.id)}">Liberar</button><button type="button" class="btn" data-eq="recusar" data-id="${esc(p.id)}">Recusar</button></div></div>`).join('')}</div>` : ''}
