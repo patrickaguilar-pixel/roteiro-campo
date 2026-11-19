@@ -2254,7 +2254,7 @@ ol.rg-vis{list-style:none;padding:0}
     </div>
     <datalist id="listaEst"></datalist>
     <datalist id="todos"></datalist>
-    <div class="creditos"><b class="versao" id="versao">Versão 38 · app · 19/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
+    <div class="creditos"><b class="versao" id="versao">Versão 39 · app · 19/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
   </aside>
   <main id="mapa" aria-label="Mapa da rota"></main>
 </div>
@@ -8730,7 +8730,7 @@ function baixarTrajetos(fmt, id){
 /* ---- ordem realizada: as visitas na ordem em que o "Cheguei" foi marcado ---- */
 function tsVisita(s, e){
   if (!s.feito) return 0; if (s.fts) return s.fts;
-  const m = /(\d{2})\/(\d{2}),?\s*(?:às\s*)?(\d{2}):(\d{2})/.exec(s.feito); if (!m) return 0;   // visitas antigas: "19/11, 08:18" (sem ano)
+  const m = /(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?,?\s*(?:às\s*)?(\d{1,2}):(\d{2})/.exec(s.feito); if (!m) return s._t || 1;   // visitas antigas: "19/11, 08:18" (sem ano); formato estranho: ainda conta
   const ano = e && e.inicio ? +e.inicio.slice(0, 4) : new Date().getFullYear();
   return new Date(ano, +m[2] - 1, +m[1], +m[3], +m[4]).getTime();
 }

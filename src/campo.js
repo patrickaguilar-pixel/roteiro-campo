@@ -355,7 +355,7 @@ function baixarTrajetos(fmt, id){
 /* ---- ordem realizada: as visitas na ordem em que o "Cheguei" foi marcado ---- */
 function tsVisita(s, e){
   if (!s.feito) return 0; if (s.fts) return s.fts;
-  const m = /(\d{2})\/(\d{2}),?\s*(?:às\s*)?(\d{2}):(\d{2})/.exec(s.feito); if (!m) return 0;   // visitas antigas: "19/11, 08:18" (sem ano)
+  const m = /(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?,?\s*(?:às\s*)?(\d{1,2}):(\d{2})/.exec(s.feito); if (!m) return s._t || 1;   // visitas antigas: "19/11, 08:18" (sem ano); formato estranho: ainda conta
   const ano = e && e.inicio ? +e.inicio.slice(0, 4) : new Date().getFullYear();
   return new Date(ano, +m[2] - 1, +m[1], +m[3], +m[4]).getTime();
 }
