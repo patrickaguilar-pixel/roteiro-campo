@@ -771,6 +771,9 @@ async function drvSincronizar(forcar){
       await drvPost({tipo:'foto', id:x.f.id, img: await drvBase64(u), estacao:est.nome, codigo:est.cod.join('-'), etapa: x.e ? x.e.nome : 'Sem etapa', data:x.f.data, lat:x.f.lat, lon:x.f.lon, legenda:x.f.legenda || ''});
       env.add(x.f.id); drvGravar('fotos', [...env]);
     }
+    /* 1b) fotos apagadas ou trocadas no app: o Drive tira da pasta da estação (vão para "Fotos removidas") */
+    const ids = todasFotos().map(x => x.f.id).sort(), hf = drvHash(ids.join());
+    if (hf !== drvLer('fotosH')){ try { await drvPost({tipo:'fotos-atuais', ids}); drvGravar('fotosH', hf); } catch(e){ if (!/tipo desconhecido/.test(e.message)) throw e; } }
     /* 2) planilha das visitas, se mudou */
     const linhas = drvLinhas(), hp = drvHash(JSON.stringify(linhas));
     if (forcar || hp !== drvLer('plan')){ await drvPost({tipo:'planilha', linhas}); drvGravar('plan', hp); }
