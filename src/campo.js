@@ -711,3 +711,82 @@ entradaGPX.onchange = async () => {
   NUV.sujo(); await carregarTrajetos();
   toast(`${n} ${n === 1 ? 'rota importada' : 'rotas importadas'} (${num(kmT, 1)} km).${EM_NUVEM ? ' Elas vão para a nuvem da equipe.' : ''}`);
 };
+
+/* ================= CÓPIA AUTOMÁTICA NO GOOGLE DRIVE =================
+   Fotos, planilha das visitas e relatório do executado (PDF) vão para a pasta central "Roteiro de Campo"
+   no Drive do administrador, por um Apps Script publicado por ele (endereço em window.RC_DRIVE).
+   Só envia os dados da própria conta (nunca no modo de leitura), sozinho, quando há internet. */
+const DRV = {url: window.RC_DRIVE || '', ocupado:false, t:null, ultimo:null, erro:''};
+const drvK = k => 'rc-drive-' + k + ':' + ((window.RC && RC.email) || 'local');
+const drvLer = k => { try { return JSON.parse(localStorage.getItem(drvK(k))); } catch(e){ return null; } };
+const drvGravar = (k, v) => { try { localStorage.setItem(drvK(k), JSON.stringify(v)); } catch(e){} };
+const drvPode = () => !!(DRV.url && window.RC && RC.ativo && !RC.leitura && RC.user && RC.user.getIdToken && navigator.onLine !== false);
+async function drvPost(o){
+  const token = await RC.user.getIdToken();
+  const r = await fetch(DRV.url, {method:'POST', body:JSON.stringify(Object.assign({}, o, {token, projeto:(metaDe(PJ_ID) || {}).nome || PJ_ID}))});
+  const j = await r.json(); if (!j.ok) throw new Error(j.erro || 'falha no Drive'); return j;
+}
+async function drvBase64(u){
+  if (u.startsWith('data:')) return u.slice(u.indexOf(',') + 1);
+  const b = await (await fetch(u)).blob();
+  return await new Promise((ok, falha) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1]); fr.onerror = falha; fr.readAsDataURL(b); });
+}
+function drvLinhas(){
+  return ordemRealizada().map((x, i) => { const est = EST[x.s.id], d = new Date(x.t), p = ll(x.s.id);
+    return [i + 1, d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), x.e.nome, est.nome, est.cod.join(' / '), estMun(est),
+      x.s.sit ? SITUACOES[x.s.sit] : '', x.s.relato || '', x.s.nota || '', (x.s.fotos || []).length, +p[0].toFixed(6), +p[1].toFixed(6)]; });
+}
+const drvHash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) | 0; return String(h); };
+/* PDF simples (tabelas e estilos básicos), que o Google converte bem */
+function drvHtmlPdf(){
+  const temVis = e => e.stops.some(s => s.feito), ets = state.etapas.filter(temVis), L = ordemRealizada();
+  const total = ets.reduce((a, e) => a + e.stops.length, 0), pct = total ? Math.round(L.length / total * 100) : 0, sit = {ok:0, manut:0, acesso:0, nd:0};
+  L.forEach(x => sit[x.s.sit || 'nd']++);
+  const nome = (RC.nome || RC.email), agora = new Date().toLocaleString('pt-BR');
+  const td = 'style="border:1px solid #ccd;padding:4px 6px;vertical-align:top"', th = 'style="border:1px solid #ccd;padding:4px 6px;background:#0B6B45;color:#fff;text-align:left"';
+  const cor = {ok:'#14653A', manut:'#92400E', acesso:'#991B1B'};
+  let h = `<html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;font-size:11px;color:#1C2623">
+    <div style="background:#0B6B45;color:#fff;padding:12px 14px"><div style="font-size:11px">RELATÓRIO DO EXECUTADO · DADOS DE</div><div style="font-size:20px;font-weight:bold">${esc(nome)}</div><div>${esc(RC.email)} · Projeto ${esc((metaDe(PJ_ID) || {}).nome || '')} · gerado em ${esc(agora)}</div></div>
+    <p style="font-size:14px"><b>${L.length}</b> de ${total} estações visitadas (<b>${pct}%</b>) nas etapas em andamento ou concluídas${ets.length ? ': ' + ets.map(e => esc(e.nome)).join(', ') : ''}.</p>
+    <table style="border-collapse:collapse;margin-bottom:10px"><tr><td ${td}>Funcionando</td><td ${td}><b>${sit.ok}</b></td><td ${td}>Precisam de manutenção</td><td ${td}><b>${sit.manut}</b></td><td ${td}>Sem acesso</td><td ${td}><b>${sit.acesso}</b></td><td ${td}>Situação não informada</td><td ${td}><b>${sit.nd}</b></td></tr></table>`;
+  const at = L.filter(x => x.s.sit === 'manut' || x.s.sit === 'acesso');
+  if (at.length) h += `<h3 style="color:#B45309">Precisam de atenção (${at.length})</h3><table style="border-collapse:collapse;width:100%"><tr><th ${th}>Estação</th><th ${th}>Código</th><th ${th}>Município</th><th ${th}>Situação</th><th ${th}>Anotações</th></tr>
+    ${at.map(x => { const est = EST[x.s.id]; return `<tr><td ${td}><b>${esc(est.nome)}</b></td><td ${td}>${esc(est.cod.join(' / '))}</td><td ${td}>${esc(estMun(est))}</td><td ${td} style="color:${cor[x.s.sit]}"><b>${esc(SITUACOES[x.s.sit])}</b></td><td ${td}>${esc(x.s.relato || '')}</td></tr>`; }).join('')}</table>`;
+  h += `<h3>Visitas na ordem em que aconteceram (${L.length})</h3><table style="border-collapse:collapse;width:100%"><tr><th ${th}>Nº</th><th ${th}>Data e hora</th><th ${th}>Estação</th><th ${th}>Código</th><th ${th}>Município</th><th ${th}>Etapa</th><th ${th}>Situação</th><th ${th}>Anotações</th><th ${th}>Fotos</th></tr>
+    ${L.map((x, i) => { const est = EST[x.s.id]; return `<tr><td ${td}>${i + 1}</td><td ${td}>${esc(fmtTsVisita(x.t))}</td><td ${td}><b>${esc(est.nome)}</b></td><td ${td}>${esc(est.cod.join(' / '))}</td><td ${td}>${esc(estMun(est))}</td><td ${td}>${esc(x.e.nome)}</td><td ${td}>${x.s.sit ? `<span style="color:${cor[x.s.sit]}"><b>${esc(SITUACOES[x.s.sit])}</b></span>` : '–'}</td><td ${td}>${esc([x.s.relato, x.s.nota && 'Obs.: ' + x.s.nota].filter(Boolean).join(' — '))}</td><td ${td}>${(x.s.fotos || []).length || ''}</td></tr>`; }).join('')}</table>`;
+  h += `<h3>Andamento por etapa</h3><table style="border-collapse:collapse"><tr><th ${th}>Etapa</th><th ${th}>Visitadas</th><th ${th}>%</th></tr>${state.etapas.map(e => { const v = e.stops.filter(s => s.feito).length; return `<tr><td ${td}>${esc(e.nome)}</td><td ${td}>${v} de ${e.stops.length}</td><td ${td}>${e.stops.length ? Math.round(v / e.stops.length * 100) : 0}%</td></tr>`; }).join('')}</table>`;
+  if (GRV.lista.length) h += `<h3>Rotas gravadas (${GRV.lista.length})</h3><table style="border-collapse:collapse;width:100%"><tr><th ${th}>Rota</th><th ${th}>Início</th><th ${th}>De</th><th ${th}>Até</th><th ${th}>Km</th><th ${th}>Tempo</th></tr>
+    ${GRV.lista.map(t => { const r = resumoTrj(t); return `<tr><td ${td}>${esc(tituloTrj(t))}</td><td ${td}>${esc(fmtDataHora(t.inicio))}</td><td ${td}>${esc(r.de)}</td><td ${td}>${esc(r.ate)}</td><td ${td}>${num(t.km, 1)}</td><td ${td}>${fmtDur(t.seg)}</td></tr>`; }).join('')}</table>`;
+  return h + `<p style="color:#6B7773;margin-top:14px">As fotos estão na pasta "Fotos" desta pessoa, separadas por etapa e estação.</p></body></html>`;
+}
+async function drvSincronizar(forcar){
+  if (!drvPode() || DRV.ocupado) return false; DRV.ocupado = true; let ok = true;
+  try {
+    /* 1) fotos novas, uma por vez */
+    const env = new Set(drvLer('fotos') || []);
+    for (const x of todasFotos()){
+      if (env.has(x.f.id) || !drvPode()) continue;
+      const u = await fotoURL(x.f.id); if (!u) continue;
+      const est = EST[x.s.id];
+      await drvPost({tipo:'foto', id:x.f.id, img: await drvBase64(u), estacao:est.nome, codigo:est.cod.join('-'), etapa: x.e ? x.e.nome : 'Sem etapa', data:x.f.data, lat:x.f.lat, lon:x.f.lon, legenda:x.f.legenda || ''});
+      env.add(x.f.id); drvGravar('fotos', [...env]);
+    }
+    /* 2) planilha das visitas, se mudou */
+    const linhas = drvLinhas(), hp = drvHash(JSON.stringify(linhas));
+    if (forcar || hp !== drvLer('plan')){ await drvPost({tipo:'planilha', linhas}); drvGravar('plan', hp); }
+    /* 3) PDF do executado: quando algo mudou, no máximo a cada 30 min (ou na hora, pelo botão) */
+    const html = drvHtmlPdf(), hh = drvHash(JSON.stringify(linhas) + GRV.lista.length + state.etapas.map(e => e.stops.length).join());
+    if (forcar || (hh !== drvLer('pdf') && Date.now() - (drvLer('pdfT') || 0) > 30 * 60e3)){ await drvPost({tipo:'pdf', html}); drvGravar('pdf', hh); drvGravar('pdfT', Date.now()); }
+    DRV.ultimo = Date.now(); DRV.erro = '';
+  } catch(e){ ok = false; DRV.erro = e.message || String(e); console.warn('Drive:', e); }
+  DRV.ocupado = false; return ok;
+}
+async function drvAgora(){
+  if (!DRV.url) return toast('A cópia no Drive ainda não foi configurada pelo administrador.');
+  if (window.RC && RC.leitura) return toast('Só o dono da conta envia os dados dele para o Drive.');
+  if (!drvPode()) return toast('Sem internet ou sem login agora. Tente de novo com internet.');
+  toast('Enviando para o Drive…');
+  const ok = await drvSincronizar(true);
+  toast(ok ? 'Fotos, planilha e relatório salvos no Drive.' : `Não deu para salvar no Drive: ${DRV.erro}`, true);
+}
+if (DRV.url){ document.querySelectorAll('[data-so-drive]').forEach(b => b.hidden = false); setTimeout(() => drvSincronizar(), 20000); setInterval(() => drvSincronizar(), 120000); addEventListener('online', () => setTimeout(() => drvSincronizar(), 5000)); }

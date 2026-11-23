@@ -1865,6 +1865,7 @@ const menuHandler = menu.querySelector('.menu-lista').onclick = ev => {
   const b = ev.target.closest('[data-acao]'); if (!b) return; const a = b.dataset.acao; menu.classList.remove('aberto');
   if (a === 'crono') abrirCrono();
   if (a === 'exec') abrirExecutado();
+  if (a === 'drive') drvAgora();
   if (a === 'gastos') abrirGastos();
   if (a === 'fotos-zip') baixarFotosZip();
   if (a === 'offline') prepararOffline();
