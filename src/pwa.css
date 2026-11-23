@@ -265,3 +265,7 @@ html.rc-leitura #cGrav, html.rc-leitura .e-bt.chk, html.rc-leitura [data-cp="gra
 .rc-etl>i{display:block;height:10px;border-radius:5px;background:#E5ECE8;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .rc-etl>i>i{display:block;height:100%;background:var(--c)}
 .rc-etl span{font-weight:700;font-size:13px}
+.rc-rec{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;font-weight:600}
+.rc-rec select{flex:1;min-width:0;height:42px;padding:0 10px;border:1.5px solid #C9D3CF;border-radius:10px;font:15px system-ui,sans-serif;background:#fff}
+.rc-prog-s{display:block;margin-top:5px;font-size:12.5px;color:#4F5D58}
+@media print{.nao-imprime{display:none!important}}

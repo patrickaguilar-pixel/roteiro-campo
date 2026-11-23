@@ -399,19 +399,33 @@ function cabRel(tipo){
 }
 const chipSit = s => s ? `<span class="rc-sit s-${s}">${esc(SITUACOES[s])}</span>` : '<span class="rc-sit s-nd">não informada</span>';
 /* Relatório do executado: só o que já foi feito em campo, dia a dia, com situação, anotações, fotos e rotas. */
-function abrirExecutado(){
-  const L = ordemRealizada().map((x, i) => ({...x, n: i + 1})), sit = {ok:0, manut:0, acesso:0, nd:0}; L.forEach(x => sit[x.s.sit || 'nd']++);
-  const total = state.etapas.reduce((a, e) => a + e.stops.length, 0), fotos = L.reduce((a, x) => a + (x.s.fotos || []).length, 0), pct = total ? Math.round(L.length / total * 100) : 0;
-  const kmG = GRV.lista.reduce((a, t) => a + t.km, 0), diaDe = t => new Date(t).toLocaleDateString('sv-SE');
+/* Recorte do relatório: 'feitas' (padrão) = só as etapas que já tiveram visita, e a % conta só essas;
+   'todas' = o roteiro inteiro; ou o id de uma etapa. */
+let execRecorte = 'feitas';
+function abrirExecutado(rec){
+  if (rec) execRecorte = rec;
+  const temVis = e => e.stops.some(s => s.feito);
+  let ets = execRecorte === 'todas' ? state.etapas : execRecorte === 'feitas' ? state.etapas.filter(temVis) : state.etapas.filter(e => e.id === execRecorte);
+  if (!ets.length && execRecorte !== 'feitas'){ execRecorte = 'feitas'; ets = state.etapas.filter(temVis); }
+  const setE = new Set(ets);
+  const L = ordemRealizada().filter(x => setE.has(x.e)).map((x, i) => ({...x, n: i + 1})), sit = {ok:0, manut:0, acesso:0, nd:0}; L.forEach(x => sit[x.s.sit || 'nd']++);
+  const total = ets.reduce((a, e) => a + e.stops.length, 0), fotos = L.reduce((a, x) => a + (x.s.fotos || []).length, 0), pct = total ? Math.round(L.length / total * 100) : 0;
+  const dIni = L.length ? new Date(L[0].t).toLocaleDateString('sv-SE') : '', dFim = L.length ? new Date(L[L.length - 1].t).toLocaleDateString('sv-SE') : '';
+  const trjs = execRecorte === 'todas' ? GRV.lista : GRV.lista.filter(t => ets.some(e => e.id === t.etapa) || (!t.etapa && dIni && new Date(Date.parse(t.inicio)).toLocaleDateString('sv-SE') >= dIni && new Date(Date.parse(t.inicio)).toLocaleDateString('sv-SE') <= dFim));
+  const kmG = trjs.reduce((a, t) => a + t.km, 0), diaDe = t => new Date(t).toLocaleDateString('sv-SE');
+  const nomeRec = execRecorte === 'todas' ? 'roteiro inteiro' : execRecorte === 'feitas' ? (ets.length === 1 ? esc(ets[0].nome) : `${ets.length} etapas em andamento`) : esc(ets[0].nome);
+  const opRec = [['feitas', 'Etapas em andamento ou concluídas (padrão)'], ...state.etapas.map(e => [e.id, e.nome + (temVis(e) ? '' : ' · sem visitas')]), ['todas', 'Roteiro inteiro (todas as etapas)']];
   const porDia = {}; L.forEach(x => (porDia[diaDe(x.t)] = porDia[diaDe(x.t)] || []).push(x));
-  const kmDia = {}; GRV.lista.forEach(t => { const d = diaDe(Date.parse(t.inicio)); kmDia[d] = (kmDia[d] || 0) + t.km; });
+  const kmDia = {}; trjs.forEach(t => { const d = diaDe(Date.parse(t.inicio)); kmDia[d] = (kmDia[d] || 0) + t.km; });
   const hm = t => new Date(t).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
   let h = cabRel('Relatório do executado');
-  h += `<div class="rc-prog"><div class="rc-prog-t"><b>${L.length}</b> de ${total} estações visitadas <span>${pct}%</span></div><i><i style="width:${pct}%"></i></i></div>
+  h += `<label class="rc-rec nao-imprime"><span>Mostrar</span><select id="execRec">${opRec.map(([v, n]) => `<option value="${esc(v)}"${v === execRecorte ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+    <div class="rc-prog"><div class="rc-prog-t"><b>${L.length}</b> de ${total} estações visitadas <span>${pct}%</span></div><i><i style="width:${pct}%"></i></i>
+    <small class="rc-prog-s">Porcentagem de: ${nomeRec}${ets.length > 1 && execRecorte !== 'todas' ? ` (${ets.map(e => esc(e.nome)).join(', ')})` : ''}</small></div>
     <div class="rc-kpi">
       <div class="k-ok"><b>${sit.ok}</b><span>funcionando</span></div><div class="k-manut"><b>${sit.manut}</b><span>precisam de manutenção</span></div>
       <div class="k-acesso"><b>${sit.acesso}</b><span>sem acesso / não encontrada</span></div><div><b>${sit.nd}</b><span>situação não informada</span></div>
-      <div><b>${Object.keys(porDia).length}</b><span>dias com visita</span></div><div><b>${fotos}</b><span>fotos</span></div><div><b>${num(kmG, 1)}</b><span>km gravados · ${GRV.lista.length} ${GRV.lista.length === 1 ? 'rota' : 'rotas'}</span></div></div>`;
+      <div><b>${Object.keys(porDia).length}</b><span>dias com visita</span></div><div><b>${fotos}</b><span>fotos</span></div><div><b>${num(kmG, 1)}</b><span>km gravados · ${trjs.length} ${trjs.length === 1 ? 'rota' : 'rotas'}</span></div></div>`;
   if (!L.length){ h += '<p class="vazio">Nenhuma visita marcada ainda. Em campo, toque em "Cheguei" em cada estação.</p>'; }
   /* atenção: o que precisa de ação */
   const at = L.filter(x => x.s.sit === 'manut' || x.s.sit === 'acesso');
@@ -427,23 +441,24 @@ function abrirExecutado(){
       </tbody></table></div>`;
   });
   /* andamento por etapa */
-  const ets = state.etapas.filter(e => e.stops.length);
   if (L.length && ets.length) h += `<h3 class="rel-etapa" style="--c:#334155">Andamento por etapa<span>${ets.length} ${ets.length === 1 ? 'etapa' : 'etapas'}</span></h3>
     <div class="rc-ets">${ets.map(e => { const v = e.stops.filter(s => s.feito).length, p = Math.round(v / e.stops.length * 100);
       return `<div class="rc-etl" style="--c:${e.cor}"><b>${esc(e.nome)}</b><i><i style="width:${p}%"></i></i><span>${v}/${e.stops.length} · ${p}%</span></div>`; }).join('')}</div>`;
-  state.etapas.forEach(e => { if (ordemRealizada(e).length) h += secaoFotosRel(e, e.cor); });
-  h += secaoTrajetosRel();
+  ets.forEach(e => { if (ordemRealizada(e).length) h += secaoFotosRel(e, e.cor); });
+  h += secaoTrajetosRel(trjs);
   document.getElementById('dRelTit').textContent = 'Relatório do executado' + contaRel();
   document.getElementById('relCorpo').innerHTML = h;
   hidratar(document.getElementById('relCorpo'));
-  prepRel(); dRel.showModal();
+  prepRel(); if (!dRel.open) dRel.showModal();
+  const sel = document.getElementById('execRec'); if (sel) sel.onchange = () => abrirExecutado(sel.value);
 }
-function secaoTrajetosRel(){
-  if (!GRV.lista.length) return '';
-  const tot = GRV.lista.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
-  return `<h3 class="rel-etapa" style="--c:${COR_TRJ}">Rotas percorridas<span>gravadas pelo GPS · ${GRV.lista.length} ${GRV.lista.length === 1 ? 'rota' : 'rotas'} · ${num(tot.km, 1)} km · ${fmtDur(tot.seg)}</span></h3>
+function secaoTrajetosRel(lista){
+  const TL = lista || GRV.lista;
+  if (!TL.length) return '';
+  const tot = TL.reduce((a, t) => ({km:a.km + t.km, seg:a.seg + t.seg}), {km:0, seg:0});
+  return `<h3 class="rel-etapa" style="--c:${COR_TRJ}">Rotas percorridas<span>gravadas pelo GPS · ${TL.length} ${TL.length === 1 ? 'rota' : 'rotas'} · ${num(tot.km, 1)} km · ${fmtDur(tot.seg)}</span></h3>
     <table class="rel"><caption style="--c:${COR_TRJ}">Trajetos registrados em campo</caption><thead><tr><th>Rota</th><th>Data</th><th>Horário</th><th>Início perto de</th><th>Fim perto de</th><th>Etapa</th><th>Km</th><th>Tempo gravando</th><th>Em movimento</th><th>Vel. média</th><th>Gravado por</th></tr></thead><tbody>` +
-    [...GRV.lista].reverse().map(t => { const r = resumoTrj(t); return `<tr><td><b>${esc(tituloTrj(t))}</b></td><td class="nw">${esc(new Date(t.inicio).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', year:'numeric'}))}</td><td class="nw">${esc(fmtHoraISO(t.inicio))}–${esc(fmtHoraISO(t.fim))}</td><td>${esc(r.de)}</td><td>${esc(r.ate)}</td><td>${t.etapa && etapaPorId(t.etapa) ? esc(etapaPorId(t.etapa).nome) : '–'}</td><td class="n">${num(t.km, 1)}</td><td class="n">${fmtDur(t.seg)}</td><td class="n">${fmtDur(r.mov)}</td><td class="n">${r.vmed ? Math.round(r.vmed) + ' km/h' : '–'}</td><td>${esc(t.nome || t.por || '–')}</td></tr>`; }).join('') +
+    [...TL].reverse().map(t => { const r = resumoTrj(t); return `<tr><td><b>${esc(tituloTrj(t))}</b></td><td class="nw">${esc(new Date(t.inicio).toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit', month:'2-digit', year:'numeric'}))}</td><td class="nw">${esc(fmtHoraISO(t.inicio))}–${esc(fmtHoraISO(t.fim))}</td><td>${esc(r.de)}</td><td>${esc(r.ate)}</td><td>${t.etapa && etapaPorId(t.etapa) ? esc(etapaPorId(t.etapa).nome) : '–'}</td><td class="n">${num(t.km, 1)}</td><td class="n">${fmtDur(t.seg)}</td><td class="n">${fmtDur(r.mov)}</td><td class="n">${r.vmed ? Math.round(r.vmed) + ' km/h' : '–'}</td><td>${esc(t.nome || t.por || '–')}</td></tr>`; }).join('') +
     `</tbody><tfoot><tr><td colspan="7">Total</td><td class="n">${num(tot.km, 1)}</td><td class="n">${fmtDur(tot.seg)}</td><td colspan="3"></td></tr></tfoot></table>`;
 }
 
