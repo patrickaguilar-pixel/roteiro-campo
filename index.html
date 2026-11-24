@@ -2300,7 +2300,7 @@ ol.rg-vis{list-style:none;padding:0}
     </div>
     <datalist id="listaEst"></datalist>
     <datalist id="todos"></datalist>
-    <div class="creditos"><b class="versao" id="versao">Versão 48 · app · 24/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
+    <div class="creditos"><b class="versao" id="versao">Versão 49 · app · 24/11/2026</b> <span id="origem" class="og"></span> Fonte: planilha IGAM – Estações observadores v2. Malhas e sedes: IBGE (lista de sedes via municipios-brasil, licença MIT). Rotas: OSRM com dados © OpenStreetMap. Alterações ficam salvas no aparelho e, com a conta da equipe, na nuvem. Botão direito no mapa (ou toque longo) registra hospedagem ou parada no ponto exato.</div>
   </aside>
   <main id="mapa" aria-label="Mapa da rota"></main>
 </div>
@@ -5265,16 +5265,36 @@ function idsFotos(IDX){
     [...(s.etapas || []).flatMap(e => e.stops || []), ...(s.pool || [])].forEach(x => (x.fotos || []).forEach(f => f && f.id && r.push([f.id, p.id]))); });
   return r;
 }
+/* Envia as fotos para a nuvem. Só marca como enviada depois que o Firebase confirmou.
+   Fotos grandes vão em vários lotes (cada lote do Firebase aceita até ~10 MB).
+   Uma vez por sessão, confere se as fotos marcadas como enviadas estão mesmo lá; se faltar alguma e ela
+   ainda estiver neste aparelho, envia de novo (corrige envios antigos que falharam sem aviso). */
+let fotosConferidas = false;
 async function enviarFotos(IDX){
   const env = lsGet(K.fenv) || {};
-  for (const [id, pid] of idsFotos(IDX)){
+  const lista = idsFotos(IDX);
+  if (!fotosConferidas && online()){
+    fotosConferidas = true;
+    for (const [id] of lista){
+      if (!env[id]) continue;
+      try { const m = await comTempo(ref.fotos.doc(id).get(), 8000); if (!m.exists){ const u = await FOT.get(id).catch(() => null); if (u) delete env[id]; } } catch(e){}
+    }
+    lsSet(K.fenv, env);
+  }
+  if (!online()) return;   // sem internet: tenta de novo quando voltar (nada é marcado como enviado)
+  for (const [id, pid] of lista){
     if (env[id]) continue;
     const u = await FOT.get(id).catch(() => null); if (!u) continue;
-    const n = Math.ceil(u.length / PARTE), lote = db.batch();
-    for (let k = 0; k < n; k++) lote.set(ref.partes.doc(`${id}_${k}`), {d: u.slice(k * PARTE, (k + 1) * PARTE)});
-    lote.set(ref.fotos.doc(id), {n, pid, tam:u.length, por:RC.email, t:fb.firestore.FieldValue.serverTimestamp()});
-    lote.commit().catch(erroNuvem);
-    env[id] = 1; lsSet(K.fenv, env);
+    try {
+      const n = Math.ceil(u.length / PARTE);
+      for (let k0 = 0; k0 < n; k0 += 6){
+        const lote = db.batch();
+        for (let k = k0; k < Math.min(n, k0 + 6); k++) lote.set(ref.partes.doc(`${id}_${k}`), {d: u.slice(k * PARTE, (k + 1) * PARTE)});
+        await comTempo(lote.commit(), 120000);
+      }
+      await comTempo(ref.fotos.doc(id).set({n, pid, tam:u.length, por:RC.email, t:fb.firestore.FieldValue.serverTimestamp()}), 60000);
+      env[id] = 1; lsSet(K.fenv, env);
+    } catch(e){ erroNuvem(e); }
   }
 }
 const buscando = {};
@@ -9189,8 +9209,9 @@ function drvHtmlPdf(){
    Cada parte tem seu próprio tratamento de erro: uma foto com problema não trava o resto. */
 async function drvSincronizar(forcar, aviso){
   if (!drvPode(forcar) || DRV.ocupado) return false; DRV.ocupado = true;
-  const erros = [], res = {fotos:0, falhas:0, pendentes:0};
-  const passo = async (nome, f) => { try { await f(); } catch(e){ erros.push(`${nome}: ${e.message || e}`); console.warn('Drive', nome, e); } };
+  const erros = [], lista = [], res = {fotos:0, falhas:0, pendentes:0};
+  const falhou = (onde, msg, detalhe) => { lista.push({onde, msg:String(msg), detalhe:detalhe || ''}); };
+  const passo = async (nome, f) => { try { await f(); } catch(e){ erros.push(`${nome}: ${e.message || e}`); falhou(nome, e.message || e); console.warn('Drive', nome, e); } };
   try {
     if (RC.leitura){ const t = await drvPost({tipo:'teste'}); if (!(t.versao >= 2)) throw new Error('atualize o script do Drive (nova versão do Codigo.gs) para salvar dados de outra pessoa'); }
     const linhas = drvLinhas(), etapas = state.etapas.map(e => [e.nome, e.stops.length, e.stops.filter(s => s.feito).length]);
@@ -9217,10 +9238,13 @@ async function drvSincronizar(forcar, aviso){
         const est = EST[x.s.id];
         await drvPost({tipo:'foto', id:x.f.id, img: await drvBase64(u), estacao:est.nome, codigo:est.cod.join('-'), etapa: x.e ? x.e.nome : 'Sem etapa', data:x.f.data, lat:x.f.lat, lon:x.f.lon, legenda:x.f.legenda || ''});
         env.add(x.f.id); drvGravar('fotos', [...env]); res.fotos++;
-      } catch(e){ res.falhas++; if (res.falhas <= 3) erros.push(`foto de ${EST[x.s.id] ? EST[x.s.id].nome : x.s.id}: ${e.message || e}`); console.warn('Drive foto', e); }
+      } catch(e){ res.falhas++; const nm = EST[x.s.id] ? EST[x.s.id].nome : x.s.id; if (res.falhas <= 3) erros.push(`foto de ${nm}: ${e.message || e}`);
+        falhou('foto', e.message || e, `${nm} · ${x.e ? x.e.nome : ''} · foto ${x.f.id} de ${x.f.data ? new Date(x.f.data).toLocaleString('pt-BR') : 'data desconhecida'}`); console.warn('Drive foto', e); }
     }
     res.pendentes -= res.fotos;
-  } catch(e){ erros.push(e.message || String(e)); }
+  } catch(e){ erros.push(e.message || String(e)); falhou('envio', e.message || e); }
+  /* registra os erros na aba "Erros" da planilha (só quando mudam, para não repetir a cada 2 min) */
+  if (lista.length){ const he = drvHash(JSON.stringify(lista)); if (forcar || he !== drvLer('erros')) try { await drvPost({tipo:'erros', erros:lista}); drvGravar('erros', he); } catch(e){} }
   DRV.erro = erros.join(' · '); DRV.ultimo = Date.now(); DRV.res = res; DRV.ocupado = false;
   return !erros.length;
 }

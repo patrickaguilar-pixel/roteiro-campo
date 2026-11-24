@@ -766,8 +766,9 @@ function drvHtmlPdf(){
    Cada parte tem seu próprio tratamento de erro: uma foto com problema não trava o resto. */
 async function drvSincronizar(forcar, aviso){
   if (!drvPode(forcar) || DRV.ocupado) return false; DRV.ocupado = true;
-  const erros = [], res = {fotos:0, falhas:0, pendentes:0};
-  const passo = async (nome, f) => { try { await f(); } catch(e){ erros.push(`${nome}: ${e.message || e}`); console.warn('Drive', nome, e); } };
+  const erros = [], lista = [], res = {fotos:0, falhas:0, pendentes:0};
+  const falhou = (onde, msg, detalhe) => { lista.push({onde, msg:String(msg), detalhe:detalhe || ''}); };
+  const passo = async (nome, f) => { try { await f(); } catch(e){ erros.push(`${nome}: ${e.message || e}`); falhou(nome, e.message || e); console.warn('Drive', nome, e); } };
   try {
     if (RC.leitura){ const t = await drvPost({tipo:'teste'}); if (!(t.versao >= 2)) throw new Error('atualize o script do Drive (nova versão do Codigo.gs) para salvar dados de outra pessoa'); }
     const linhas = drvLinhas(), etapas = state.etapas.map(e => [e.nome, e.stops.length, e.stops.filter(s => s.feito).length]);
@@ -794,10 +795,13 @@ async function drvSincronizar(forcar, aviso){
         const est = EST[x.s.id];
         await drvPost({tipo:'foto', id:x.f.id, img: await drvBase64(u), estacao:est.nome, codigo:est.cod.join('-'), etapa: x.e ? x.e.nome : 'Sem etapa', data:x.f.data, lat:x.f.lat, lon:x.f.lon, legenda:x.f.legenda || ''});
         env.add(x.f.id); drvGravar('fotos', [...env]); res.fotos++;
-      } catch(e){ res.falhas++; if (res.falhas <= 3) erros.push(`foto de ${EST[x.s.id] ? EST[x.s.id].nome : x.s.id}: ${e.message || e}`); console.warn('Drive foto', e); }
+      } catch(e){ res.falhas++; const nm = EST[x.s.id] ? EST[x.s.id].nome : x.s.id; if (res.falhas <= 3) erros.push(`foto de ${nm}: ${e.message || e}`);
+        falhou('foto', e.message || e, `${nm} · ${x.e ? x.e.nome : ''} · foto ${x.f.id} de ${x.f.data ? new Date(x.f.data).toLocaleString('pt-BR') : 'data desconhecida'}`); console.warn('Drive foto', e); }
     }
     res.pendentes -= res.fotos;
-  } catch(e){ erros.push(e.message || String(e)); }
+  } catch(e){ erros.push(e.message || String(e)); falhou('envio', e.message || e); }
+  /* registra os erros na aba "Erros" da planilha (só quando mudam, para não repetir a cada 2 min) */
+  if (lista.length){ const he = drvHash(JSON.stringify(lista)); if (forcar || he !== drvLer('erros')) try { await drvPost({tipo:'erros', erros:lista}); drvGravar('erros', he); } catch(e){} }
   DRV.erro = erros.join(' · '); DRV.ultimo = Date.now(); DRV.res = res; DRV.ocupado = false;
   return !erros.length;
 }

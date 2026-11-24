@@ -394,16 +394,36 @@ function idsFotos(IDX){
     [...(s.etapas || []).flatMap(e => e.stops || []), ...(s.pool || [])].forEach(x => (x.fotos || []).forEach(f => f && f.id && r.push([f.id, p.id]))); });
   return r;
 }
+/* Envia as fotos para a nuvem. Só marca como enviada depois que o Firebase confirmou.
+   Fotos grandes vão em vários lotes (cada lote do Firebase aceita até ~10 MB).
+   Uma vez por sessão, confere se as fotos marcadas como enviadas estão mesmo lá; se faltar alguma e ela
+   ainda estiver neste aparelho, envia de novo (corrige envios antigos que falharam sem aviso). */
+let fotosConferidas = false;
 async function enviarFotos(IDX){
   const env = lsGet(K.fenv) || {};
-  for (const [id, pid] of idsFotos(IDX)){
+  const lista = idsFotos(IDX);
+  if (!fotosConferidas && online()){
+    fotosConferidas = true;
+    for (const [id] of lista){
+      if (!env[id]) continue;
+      try { const m = await comTempo(ref.fotos.doc(id).get(), 8000); if (!m.exists){ const u = await FOT.get(id).catch(() => null); if (u) delete env[id]; } } catch(e){}
+    }
+    lsSet(K.fenv, env);
+  }
+  if (!online()) return;   // sem internet: tenta de novo quando voltar (nada é marcado como enviado)
+  for (const [id, pid] of lista){
     if (env[id]) continue;
     const u = await FOT.get(id).catch(() => null); if (!u) continue;
-    const n = Math.ceil(u.length / PARTE), lote = db.batch();
-    for (let k = 0; k < n; k++) lote.set(ref.partes.doc(`${id}_${k}`), {d: u.slice(k * PARTE, (k + 1) * PARTE)});
-    lote.set(ref.fotos.doc(id), {n, pid, tam:u.length, por:RC.email, t:fb.firestore.FieldValue.serverTimestamp()});
-    lote.commit().catch(erroNuvem);
-    env[id] = 1; lsSet(K.fenv, env);
+    try {
+      const n = Math.ceil(u.length / PARTE);
+      for (let k0 = 0; k0 < n; k0 += 6){
+        const lote = db.batch();
+        for (let k = k0; k < Math.min(n, k0 + 6); k++) lote.set(ref.partes.doc(`${id}_${k}`), {d: u.slice(k * PARTE, (k + 1) * PARTE)});
+        await comTempo(lote.commit(), 120000);
+      }
+      await comTempo(ref.fotos.doc(id).set({n, pid, tam:u.length, por:RC.email, t:fb.firestore.FieldValue.serverTimestamp()}), 60000);
+      env[id] = 1; lsSet(K.fenv, env);
+    } catch(e){ erroNuvem(e); }
   }
 }
 const buscando = {};
