@@ -1934,11 +1934,11 @@ function acharEst(txt){
 }
 
 let toastT;
-function toast(msg, comDesfazer){
+function toast(msg, comDesfazer, ms){
   const t = document.getElementById('toast');
   t.innerHTML = `<span>${esc(msg)}</span>${comDesfazer ? '<button type="button">Desfazer</button>' : ''}`;
   const b = t.querySelector('button'); if (b) b.onclick = () => { desfazer(); t.classList.remove('vis'); };
-  t.classList.add('vis'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('vis'), 5500);
+  t.classList.add('vis'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('vis'), ms || 5500);
 }
 
 /* ================= Otimizar no Quadro geral: redistribui os pontos entre as etapas ================= */

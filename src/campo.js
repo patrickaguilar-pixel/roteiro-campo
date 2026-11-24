@@ -762,40 +762,51 @@ function drvHtmlPdf(){
     ${GRV.lista.map(t => { const r = resumoTrj(t); return `<tr><td ${td}>${esc(tituloTrj(t))}</td><td ${td}>${esc(fmtDataHora(t.inicio))}</td><td ${td}>${esc(r.de)}</td><td ${td}>${esc(r.ate)}</td><td ${td}>${num(t.km, 1)}</td><td ${td}>${fmtDur(t.seg)}</td></tr>`; }).join('')}</table>`;
   return h + `<p style="color:#6B7773;margin-top:14px">As fotos estão na pasta "Fotos" desta pessoa, separadas por etapa e estação.</p></body></html>`;
 }
-async function drvSincronizar(forcar){
-  if (!drvPode(forcar) || DRV.ocupado) return false; DRV.ocupado = true; let ok = true;
+/* Ordem: planilha e relatório primeiro (rápidos e mais importantes), depois as fotos, uma por vez.
+   Cada parte tem seu próprio tratamento de erro: uma foto com problema não trava o resto. */
+async function drvSincronizar(forcar, aviso){
+  if (!drvPode(forcar) || DRV.ocupado) return false; DRV.ocupado = true;
+  const erros = [], res = {fotos:0, falhas:0, pendentes:0};
+  const passo = async (nome, f) => { try { await f(); } catch(e){ erros.push(`${nome}: ${e.message || e}`); console.warn('Drive', nome, e); } };
   try {
     if (RC.leitura){ const t = await drvPost({tipo:'teste'}); if (!(t.versao >= 2)) throw new Error('atualize o script do Drive (nova versão do Codigo.gs) para salvar dados de outra pessoa'); }
-    /* 1) fotos novas, uma por vez */
-    const env = new Set(drvLer('fotos') || []);
-    for (const x of todasFotos()){
-      if (env.has(x.f.id) || !drvPode(forcar)) continue;
-      const u = await fotoURL(x.f.id); if (!u) continue;
-      const est = EST[x.s.id];
-      await drvPost({tipo:'foto', id:x.f.id, img: await drvBase64(u), estacao:est.nome, codigo:est.cod.join('-'), etapa: x.e ? x.e.nome : 'Sem etapa', data:x.f.data, lat:x.f.lat, lon:x.f.lon, legenda:x.f.legenda || ''});
-      env.add(x.f.id); drvGravar('fotos', [...env]);
-    }
-    /* 1b) fotos apagadas ou trocadas no app: o Drive tira da pasta da estação (vão para "Fotos removidas") */
-    const ids = todasFotos().map(x => x.f.id).sort(), hf = drvHash(ids.join());
-    if (hf !== drvLer('fotosH')){ try { await drvPost({tipo:'fotos-atuais', ids}); drvGravar('fotosH', hf); } catch(e){ if (!/tipo desconhecido/.test(e.message)) throw e; } }
-    /* 2) planilha das visitas, se mudou */
     const linhas = drvLinhas(), etapas = state.etapas.map(e => [e.nome, e.stops.length, e.stops.filter(s => s.feito).length]);
+    /* 1) planilha das visitas, se mudou */
     const hp = drvHash(JSON.stringify(linhas) + JSON.stringify(etapas));
-    if (forcar || hp !== drvLer('plan')){ await drvPost({tipo:'planilha', linhas, etapas}); drvGravar('plan', hp); }
-    /* 3) PDF do executado: quando algo mudou, no máximo a cada 30 min (ou na hora, pelo botão) */
-    const html = drvHtmlPdf(), hh = drvHash(JSON.stringify(linhas) + GRV.lista.length + state.etapas.map(e => e.stops.length).join());
-    if (forcar || (hh !== drvLer('pdf') && Date.now() - (drvLer('pdfT') || 0) > 30 * 60e3)){ await drvPost({tipo:'pdf', html}); drvGravar('pdf', hh); drvGravar('pdfT', Date.now()); }
-    DRV.ultimo = Date.now(); DRV.erro = '';
-  } catch(e){ ok = false; DRV.erro = e.message || String(e); console.warn('Drive:', e); }
-  DRV.ocupado = false; return ok;
+    if (forcar || hp !== drvLer('plan')) await passo('planilha', async () => { aviso && aviso('Atualizando a planilha…'); await drvPost({tipo:'planilha', linhas, etapas}); drvGravar('plan', hp); });
+    /* 2) PDF do executado: quando algo mudou, no máximo a cada 30 min (ou na hora, pelo botão) */
+    const hh = drvHash(JSON.stringify(linhas) + GRV.lista.length + etapas.join());
+    if (forcar || (hh !== drvLer('pdf') && Date.now() - (drvLer('pdfT') || 0) > 30 * 60e3)) await passo('relatório', async () => { aviso && aviso('Gerando o relatório em PDF…'); await drvPost({tipo:'pdf', html:drvHtmlPdf()}); drvGravar('pdf', hh); drvGravar('pdfT', Date.now()); });
+    /* 3) fotos novas, uma por vez */
+    const env = new Set(drvLer('fotos') || []), todas = todasFotos(), novas = todas.filter(x => !env.has(x.f.id));
+    res.pendentes = novas.length;
+    for (const x of novas){
+      if (!drvPode(forcar)) break;
+      aviso && aviso(`Enviando fotos: ${res.fotos + res.falhas + 1} de ${novas.length}…`);
+      try {
+        const u = await fotoURL(x.f.id); if (!u) throw new Error('foto não encontrada neste aparelho nem na nuvem');
+        const est = EST[x.s.id];
+        await drvPost({tipo:'foto', id:x.f.id, img: await drvBase64(u), estacao:est.nome, codigo:est.cod.join('-'), etapa: x.e ? x.e.nome : 'Sem etapa', data:x.f.data, lat:x.f.lat, lon:x.f.lon, legenda:x.f.legenda || ''});
+        env.add(x.f.id); drvGravar('fotos', [...env]); res.fotos++;
+      } catch(e){ res.falhas++; if (res.falhas <= 3) erros.push(`foto de ${EST[x.s.id] ? EST[x.s.id].nome : x.s.id}: ${e.message || e}`); console.warn('Drive foto', e); }
+    }
+    res.pendentes -= res.fotos;
+    /* 4) fotos apagadas ou trocadas no app: o Drive tira da pasta da estação (vão para "Fotos removidas") */
+    const ids = todas.map(x => x.f.id).sort(), hf = drvHash(ids.join());
+    if (hf !== drvLer('fotosH')) await passo('fotos removidas', async () => { try { await drvPost({tipo:'fotos-atuais', ids}); drvGravar('fotosH', hf); } catch(e){ if (!/tipo desconhecido/.test(e.message)) throw e; } });
+  } catch(e){ erros.push(e.message || String(e)); }
+  DRV.erro = erros.join(' · '); DRV.ultimo = Date.now(); DRV.res = res; DRV.ocupado = false;
+  return !erros.length;
 }
 async function drvAgora(){
   if (!DRV.url) return toast('A cópia no Drive ainda não foi configurada pelo administrador.');
   if (window.RC && RC.leitura && !drvChefe()) return toast('Só o dono da conta, o administrador ou um coordenador salvam estes dados no Drive.');
   if (!drvPode(true)) return toast('Sem internet ou sem login agora. Tente de novo com internet.');
   const de = RC.leitura ? ` de ${RC.verNome || RC.dono}` : '';
+  if (DRV.ocupado) return toast('Já está enviando para o Drive. Aguarde terminar.');
   toast(`Salvando os dados${de} no Drive…`);
-  const ok = await drvSincronizar(true);
-  toast(ok ? `Fotos, planilha e relatório${de} salvos no Drive.` : `Não deu para salvar no Drive: ${DRV.erro}`, true);
+  const ok = await drvSincronizar(true, m => toast(m, false, 60000));
+  const r = DRV.res || {}, fotos = r.fotos ? ` ${r.fotos} ${r.fotos === 1 ? 'foto nova' : 'fotos novas'}.` : '';
+  toast(ok ? `Planilha e relatório${de} salvos no Drive.${fotos}` : `Salvo em parte no Drive.${fotos} Problema: ${DRV.erro}`, false, ok ? 6000 : 20000);
 }
 if (DRV.url){ document.querySelectorAll('[data-so-drive]').forEach(b => b.hidden = false); setTimeout(() => drvSincronizar(), 20000); setInterval(() => drvSincronizar(), 120000); addEventListener('online', () => setTimeout(() => drvSincronizar(), 5000)); }
