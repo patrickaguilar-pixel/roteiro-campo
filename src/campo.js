@@ -779,8 +779,9 @@ async function drvSincronizar(forcar){
     const ids = todasFotos().map(x => x.f.id).sort(), hf = drvHash(ids.join());
     if (hf !== drvLer('fotosH')){ try { await drvPost({tipo:'fotos-atuais', ids}); drvGravar('fotosH', hf); } catch(e){ if (!/tipo desconhecido/.test(e.message)) throw e; } }
     /* 2) planilha das visitas, se mudou */
-    const linhas = drvLinhas(), hp = drvHash(JSON.stringify(linhas));
-    if (forcar || hp !== drvLer('plan')){ await drvPost({tipo:'planilha', linhas}); drvGravar('plan', hp); }
+    const linhas = drvLinhas(), etapas = state.etapas.map(e => [e.nome, e.stops.length, e.stops.filter(s => s.feito).length]);
+    const hp = drvHash(JSON.stringify(linhas) + JSON.stringify(etapas));
+    if (forcar || hp !== drvLer('plan')){ await drvPost({tipo:'planilha', linhas, etapas}); drvGravar('plan', hp); }
     /* 3) PDF do executado: quando algo mudou, no máximo a cada 30 min (ou na hora, pelo botão) */
     const html = drvHtmlPdf(), hh = drvHash(JSON.stringify(linhas) + GRV.lista.length + state.etapas.map(e => e.stops.length).join());
     if (forcar || (hh !== drvLer('pdf') && Date.now() - (drvLer('pdfT') || 0) > 30 * 60e3)){ await drvPost({tipo:'pdf', html}); drvGravar('pdf', hh); drvGravar('pdfT', Date.now()); }
