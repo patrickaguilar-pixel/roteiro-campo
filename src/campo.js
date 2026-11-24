@@ -717,13 +717,16 @@ entradaGPX.onchange = async () => {
    no Drive do administrador, por um Apps Script publicado por ele (endereço em window.RC_DRIVE).
    Só envia os dados da própria conta (nunca no modo de leitura), sozinho, quando há internet. */
 const DRV = {url: window.RC_DRIVE || '', ocupado:false, t:null, ultimo:null, erro:''};
-const drvK = k => 'rc-drive-' + k + ':' + ((window.RC && RC.email) || 'local');
+const drvK = k => 'rc-drive-' + k + ':' + ((window.RC && (RC.dono || RC.email)) || 'local');
 const drvLer = k => { try { return JSON.parse(localStorage.getItem(drvK(k))); } catch(e){ return null; } };
 const drvGravar = (k, v) => { try { localStorage.setItem(drvK(k), JSON.stringify(v)); } catch(e){} };
-const drvPode = () => !!(DRV.url && window.RC && RC.ativo && !RC.leitura && RC.user && RC.user.getIdToken && navigator.onLine !== false);
+const drvChefe = () => window.RC && (RC.papel === 'admin' || RC.papel === 'coord');
+/* automático: só os próprios dados; pelo botão, administrador e coordenador também salvam os de quem estão vendo */
+const drvPode = forcar => !!(DRV.url && window.RC && RC.ativo && RC.user && RC.user.getIdToken && navigator.onLine !== false && (!RC.leitura || (forcar && drvChefe())));
 async function drvPost(o){
   const token = await RC.user.getIdToken();
-  const r = await fetch(DRV.url, {method:'POST', body:JSON.stringify(Object.assign({}, o, {token, projeto:(metaDe(PJ_ID) || {}).nome || PJ_ID}))});
+  const extra = RC.leitura ? {para:RC.dono, paraNome:RC.verNome || RC.dono} : {};
+  const r = await fetch(DRV.url, {method:'POST', body:JSON.stringify(Object.assign({}, o, extra, {token, projeto:(metaDe(PJ_ID) || {}).nome || PJ_ID}))});
   const j = await r.json(); if (!j.ok) throw new Error(j.erro || 'falha no Drive'); return j;
 }
 async function drvBase64(u){
@@ -742,11 +745,11 @@ function drvHtmlPdf(){
   const temVis = e => e.stops.some(s => s.feito), ets = state.etapas.filter(temVis), L = ordemRealizada();
   const total = ets.reduce((a, e) => a + e.stops.length, 0), pct = total ? Math.round(L.length / total * 100) : 0, sit = {ok:0, manut:0, acesso:0, nd:0};
   L.forEach(x => sit[x.s.sit || 'nd']++);
-  const nome = (RC.nome || RC.email), agora = new Date().toLocaleString('pt-BR');
+  const nome = RC.leitura ? (RC.verNome || RC.dono) : (RC.nome || RC.email), agora = new Date().toLocaleString('pt-BR');
   const td = 'style="border:1px solid #ccd;padding:4px 6px;vertical-align:top"', th = 'style="border:1px solid #ccd;padding:4px 6px;background:#0B6B45;color:#fff;text-align:left"';
   const cor = {ok:'#14653A', manut:'#92400E', acesso:'#991B1B'};
   let h = `<html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;font-size:11px;color:#1C2623">
-    <div style="background:#0B6B45;color:#fff;padding:12px 14px"><div style="font-size:11px">RELATÓRIO DO EXECUTADO · DADOS DE</div><div style="font-size:20px;font-weight:bold">${esc(nome)}</div><div>${esc(RC.email)} · Projeto ${esc((metaDe(PJ_ID) || {}).nome || '')} · gerado em ${esc(agora)}</div></div>
+    <div style="background:#0B6B45;color:#fff;padding:12px 14px"><div style="font-size:11px">RELATÓRIO DO EXECUTADO · DADOS DE</div><div style="font-size:20px;font-weight:bold">${esc(nome)}</div><div>${esc(RC.dono || RC.email)} · Projeto ${esc((metaDe(PJ_ID) || {}).nome || '')} · gerado em ${esc(agora)}</div></div>
     <p style="font-size:14px"><b>${L.length}</b> de ${total} estações visitadas (<b>${pct}%</b>) nas etapas em andamento ou concluídas${ets.length ? ': ' + ets.map(e => esc(e.nome)).join(', ') : ''}.</p>
     <table style="border-collapse:collapse;margin-bottom:10px"><tr><td ${td}>Funcionando</td><td ${td}><b>${sit.ok}</b></td><td ${td}>Precisam de manutenção</td><td ${td}><b>${sit.manut}</b></td><td ${td}>Sem acesso</td><td ${td}><b>${sit.acesso}</b></td><td ${td}>Situação não informada</td><td ${td}><b>${sit.nd}</b></td></tr></table>`;
   const at = L.filter(x => x.s.sit === 'manut' || x.s.sit === 'acesso');
@@ -760,12 +763,13 @@ function drvHtmlPdf(){
   return h + `<p style="color:#6B7773;margin-top:14px">As fotos estão na pasta "Fotos" desta pessoa, separadas por etapa e estação.</p></body></html>`;
 }
 async function drvSincronizar(forcar){
-  if (!drvPode() || DRV.ocupado) return false; DRV.ocupado = true; let ok = true;
+  if (!drvPode(forcar) || DRV.ocupado) return false; DRV.ocupado = true; let ok = true;
   try {
+    if (RC.leitura){ const t = await drvPost({tipo:'teste'}); if (!(t.versao >= 2)) throw new Error('atualize o script do Drive (nova versão do Codigo.gs) para salvar dados de outra pessoa'); }
     /* 1) fotos novas, uma por vez */
     const env = new Set(drvLer('fotos') || []);
     for (const x of todasFotos()){
-      if (env.has(x.f.id) || !drvPode()) continue;
+      if (env.has(x.f.id) || !drvPode(forcar)) continue;
       const u = await fotoURL(x.f.id); if (!u) continue;
       const est = EST[x.s.id];
       await drvPost({tipo:'foto', id:x.f.id, img: await drvBase64(u), estacao:est.nome, codigo:est.cod.join('-'), etapa: x.e ? x.e.nome : 'Sem etapa', data:x.f.data, lat:x.f.lat, lon:x.f.lon, legenda:x.f.legenda || ''});
@@ -786,10 +790,11 @@ async function drvSincronizar(forcar){
 }
 async function drvAgora(){
   if (!DRV.url) return toast('A cópia no Drive ainda não foi configurada pelo administrador.');
-  if (window.RC && RC.leitura) return toast('Só o dono da conta envia os dados dele para o Drive.');
-  if (!drvPode()) return toast('Sem internet ou sem login agora. Tente de novo com internet.');
-  toast('Enviando para o Drive…');
+  if (window.RC && RC.leitura && !drvChefe()) return toast('Só o dono da conta, o administrador ou um coordenador salvam estes dados no Drive.');
+  if (!drvPode(true)) return toast('Sem internet ou sem login agora. Tente de novo com internet.');
+  const de = RC.leitura ? ` de ${RC.verNome || RC.dono}` : '';
+  toast(`Salvando os dados${de} no Drive…`);
   const ok = await drvSincronizar(true);
-  toast(ok ? 'Fotos, planilha e relatório salvos no Drive.' : `Não deu para salvar no Drive: ${DRV.erro}`, true);
+  toast(ok ? `Fotos, planilha e relatório${de} salvos no Drive.` : `Não deu para salvar no Drive: ${DRV.erro}`, true);
 }
 if (DRV.url){ document.querySelectorAll('[data-so-drive]').forEach(b => b.hidden = false); setTimeout(() => drvSincronizar(), 20000); setInterval(() => drvSincronizar(), 120000); addEventListener('online', () => setTimeout(() => drvSincronizar(), 5000)); }

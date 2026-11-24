@@ -1,6 +1,6 @@
 /* Roteiro de Campo: rede primeiro para o app (sempre a versão mais nova); cópia guardada para abrir sem internet.
    Mapas de fundo: cada pedaço visto com internet fica guardado no aparelho (até ~MAX pedaços, 60 dias). */
-const V = '44-1795462310';
+const V = '45-1795519293';
 const APP = 'rc-app-' + V, LIB = 'rc-lib-v1', MAPAS = 'rc-mapas-v1';
 const MAX = 40000, VALIDADE = 60 * 864e5;
 const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
