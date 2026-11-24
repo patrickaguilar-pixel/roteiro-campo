@@ -359,7 +359,7 @@ if (CELULAR){
   }
   function telaRelatorios(){
     const it = (a, t, s) => `<button type="button" data-acao="${a}"><div><b>${t}</b>${s ? `<small>${s}</small>` : ''}</div></button>`;
-    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('exec', 'Relatório do executado', 'Só o que já foi feito: visitas, situação, anotações, fotos e rotas. PDF.')}${it('crono', 'Visão geral', 'Tudo: o planejado e o executado, dia a dia. PDF.')}${window.RC_DRIVE ? it('drive', 'Salvar no Drive agora', 'Fotos, planilha e relatório na pasta da equipe. Também é automático.') : ''}${it('tabela', 'Tabela das estações', '')}</div>
+    return cab('Relatórios e arquivos', '') + `<div class="c-menu">${it('exec', 'Relatório do executado', 'Só o que já foi feito: visitas, situação, anotações, fotos e rotas. PDF.')}${it('crono', 'Visão geral', 'Tudo: o planejado e o executado, dia a dia. PDF.')}${window.RC_DRIVE ? it('drive', 'Salvar no Drive agora', 'Fotos e planilha na pasta da equipe. Também é automático.') : ''}${it('tabela', 'Tabela das estações', '')}</div>
       <p class="c-rot">Baixar</p><div class="c-menu">${it('csv', 'Planilha do roteiro (CSV)', '')}${it('csvApoio', 'Hospedagens e paradas (CSV)', '')}${it('kml', 'Estações (KML, Google Earth)', '')}${it('fotos-zip', 'Fotos (ZIP)', '')}<button type="button" data-c="trj-todas"><div><b>Rotas gravadas (GPX)</b></div></button><button type="button" data-c="copia"><div><b>Cópia de segurança (HTML)</b><small>Abre no computador mesmo sem o app</small></div></button></div>
       <p class="c-rot">Trazer dados</p><div class="c-menu">${it('abrir', 'Importar de arquivo salvo antes', 'HTML ou .json da versão antiga')}</div>`;
   }

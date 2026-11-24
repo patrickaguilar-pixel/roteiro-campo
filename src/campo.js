@@ -774,11 +774,17 @@ async function drvSincronizar(forcar, aviso){
     /* 1) planilha das visitas, se mudou */
     const hp = drvHash(JSON.stringify(linhas) + JSON.stringify(etapas));
     if (forcar || hp !== drvLer('plan')) await passo('planilha', async () => { aviso && aviso('Atualizando a planilha…'); await drvPost({tipo:'planilha', linhas, etapas}); drvGravar('plan', hp); });
-    /* 2) PDF do executado: quando algo mudou, no máximo a cada 30 min (ou na hora, pelo botão) */
-    const hh = drvHash(JSON.stringify(linhas) + GRV.lista.length + etapas.join());
-    if (forcar || (hh !== drvLer('pdf') && Date.now() - (drvLer('pdfT') || 0) > 30 * 60e3)) await passo('relatório', async () => { aviso && aviso('Gerando o relatório em PDF…'); await drvPost({tipo:'pdf', html:drvHtmlPdf()}); drvGravar('pdf', hh); drvGravar('pdfT', Date.now()); });
-    /* 3) fotos novas, uma por vez */
-    const env = new Set(drvLer('fotos') || []), todas = todasFotos(), novas = todas.filter(x => !env.has(x.f.id));
+    /* 2) confere com o Drive quais fotos já estão lá (o Drive é quem manda: o que faltar é enviado de novo)
+          e tira da pasta da estação as fotos apagadas no app (vão para "Fotos removidas") */
+    const todas = todasFotos(), ids = todas.map(x => x.f.id).sort(), chave = id => String(id).replace(/[\\/:*?"<>|#]/g, '-').trim().slice(0, 100).slice(-10);
+    let env = new Set(drvLer('fotos') || []);
+    await passo('conferência das fotos', async () => {
+      aviso && aviso('Conferindo as fotos no Drive…');
+      const r = await drvPost({tipo:'fotos-atuais', ids});
+      if (Array.isArray(r.existentes)){ const ex = new Set(r.existentes); env = new Set(ids.filter(id => ex.has(chave(id)))); drvGravar('fotos', [...env]); }
+    });
+    /* 3) fotos que faltam, uma por vez */
+    const novas = todas.filter(x => !env.has(x.f.id));
     res.pendentes = novas.length;
     for (const x of novas){
       if (!drvPode(forcar)) break;
@@ -791,9 +797,6 @@ async function drvSincronizar(forcar, aviso){
       } catch(e){ res.falhas++; if (res.falhas <= 3) erros.push(`foto de ${EST[x.s.id] ? EST[x.s.id].nome : x.s.id}: ${e.message || e}`); console.warn('Drive foto', e); }
     }
     res.pendentes -= res.fotos;
-    /* 4) fotos apagadas ou trocadas no app: o Drive tira da pasta da estação (vão para "Fotos removidas") */
-    const ids = todas.map(x => x.f.id).sort(), hf = drvHash(ids.join());
-    if (hf !== drvLer('fotosH')) await passo('fotos removidas', async () => { try { await drvPost({tipo:'fotos-atuais', ids}); drvGravar('fotosH', hf); } catch(e){ if (!/tipo desconhecido/.test(e.message)) throw e; } });
   } catch(e){ erros.push(e.message || String(e)); }
   DRV.erro = erros.join(' · '); DRV.ultimo = Date.now(); DRV.res = res; DRV.ocupado = false;
   return !erros.length;
@@ -807,6 +810,7 @@ async function drvAgora(){
   toast(`Salvando os dados${de} no Drive…`);
   const ok = await drvSincronizar(true, m => toast(m, false, 60000));
   const r = DRV.res || {}, fotos = r.fotos ? ` ${r.fotos} ${r.fotos === 1 ? 'foto nova' : 'fotos novas'}.` : '';
-  toast(ok ? `Planilha e relatório${de} salvos no Drive.${fotos}` : `Salvo em parte no Drive.${fotos} Problema: ${DRV.erro}`, false, ok ? 6000 : 20000);
+  const tot = todasFotos().length, falta = r.pendentes || 0;
+  toast(ok ? `Drive em dia${de}: planilha atualizada e ${tot - falta} de ${tot} fotos.${fotos}` : `Salvo em parte no Drive: ${tot - falta} de ${tot} fotos.${fotos} Problema: ${DRV.erro}`, false, ok ? 8000 : 25000);
 }
 if (DRV.url){ document.querySelectorAll('[data-so-drive]').forEach(b => b.hidden = false); setTimeout(() => drvSincronizar(), 20000); setInterval(() => drvSincronizar(), 120000); addEventListener('online', () => setTimeout(() => drvSincronizar(), 5000)); }
